@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>여행 정거장</title>
+<meta name="description" content="고양이 역장이 골라주는 힐링 여행지. 질문 다섯 개로 국내외 30곳 중 딱 맞는 여행지와 하루 코스를 추천해요.">
+<meta name="theme-color" content="#2b2238">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="여행 정거장">
+<meta property="og:title" content="여행 정거장">
+<meta property="og:description" content="고양이 역장이 골라주는 힐링 여행지">
+<meta property="og:image" content="og.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https://fwxmiqrtzcjlnyuvlbxw.supabase.co; connect-src 'self' https://fwxmiqrtzcjlnyuvlbxw.supabase.co wss://fwxmiqrtzcjlnyuvlbxw.supabase.co; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; frame-src 'self'">
+<link rel="stylesheet" href="vendor/jua.css">
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<style>
+/* VOICE: 느리고 다정한 힐링, 해 질 녘 시골 간이역
+   IDEA: 역장 고양이가 마음을 물어보고 기차표를 끊어주는 작은 기차역
+   PICTURE: 96x120 도트 캔버스 — 정거장, 기차, 여행지 풍경 15종
+   COLOUR and TYPE: 노을 살구 + 크림 종이 + 잉크 자주, 둥근 Jua
+   LAYOUT: 세로 9:16, 위 풍경 / 아래 대화창, 도트 테두리 버튼 */
+:root{color-scheme:light;--ink:#3b2a3a;--paper:#fff4e3;--card:#fffaf0;--rose:#e86f5a;--plum:#2b2238;--leaf:#4f8a6b}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--plum)}
+body{font:17px/1.5 Jua,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);overflow:hidden}
+.game{position:relative;max-width:460px;height:100dvh;margin:0 auto;display:flex;flex-direction:column;background:var(--paper);box-shadow:0 0 0 4px var(--ink)}
+.stage{position:relative;flex:1 1 auto;min-height:200px;overflow:hidden;background:#6f9460}
+#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 78%;image-rendering:pixelated;image-rendering:crisp-edges}
+.hud{position:absolute;z-index:3;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pbtn,.opt{font:inherit;color:var(--ink);background:var(--card);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);border-radius:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pbtn{font-size:14px;padding:6px 10px;min-height:40px}
+.pbtn:active,.opt:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+.pbtn:focus-visible,.opt:focus-visible{outline:3px solid var(--rose);outline-offset:3px}
+.dots{display:flex;gap:6px;transition:opacity .3s}.dots i{width:10px;height:10px;background:#fff9;border:2px solid var(--ink)}.dots i.on{background:var(--rose)}
+.fade{position:absolute;inset:0;z-index:2;background:#fffaf0;opacity:0;pointer-events:none;transition:opacity .6s}
+.panel{position:relative;flex:none;border-top:4px solid var(--ink);background:var(--paper);padding:0 16px calc(18px + env(safe-area-inset-bottom));height:clamp(270px,52dvh,470px);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px}
+.who{align-self:flex-start;flex:none;background:var(--ink);color:var(--paper);font-size:14px;padding:2px 10px;margin:14px 0 -2px}
+.msg{font-size:18px;min-height:3.1em;white-space:pre-line;cursor:pointer}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opts.one{grid-template-columns:1fr}
+.opts:not(.one) .opt:last-child:nth-child(odd){grid-column:1/-1}
+.opt{font-size:16px;min-height:54px;padding:8px 10px;line-height:1.25;animation:pop .25s ease-out both}
+.opt:nth-child(2){animation-delay:.05s}.opt:nth-child(3){animation-delay:.1s}.opt:nth-child(4){animation-delay:.15s}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+.card{position:relative;background:var(--card);border:3px solid var(--ink);padding:12px 14px;box-shadow:5px 5px 0 #3b2a3a26;animation:pop .35s ease-out both}
+.place{font-size:14px;color:#8a6a7a;padding-right:70px}
+.card h2{margin:0 0 4px;font-size:clamp(26px,8vw,32px);line-height:1.1;font-weight:400;padding-right:70px;text-wrap:balance}
+.line{margin:0 0 8px}
+.why{margin:0 0 8px;color:var(--rose);font-size:15px}
+.tip{margin:0;font-size:15px;background:var(--paper);border:2px dashed #c9b49a;padding:8px 10px}
+.tip b{font-weight:400;color:var(--leaf);margin-right:4px}
+.new{margin:8px 0 0;font-size:14px;color:var(--leaf)}
+.stamp{position:absolute;top:10px;right:10px;width:62px;height:62px;border:3px double var(--c);border-radius:50%;color:var(--c);display:grid;place-items:center;text-align:center;font-size:12px;line-height:1.1;padding:4px;word-break:keep-all;transform:rotate(-12deg);background:#fffaf0cc}
+.over{position:absolute;inset:0;z-index:5;background:#2b2238e8;padding:calc(16px + env(safe-area-inset-top)) 14px 16px;overflow:auto}
+.over[hidden]{display:none}
+.book{background:var(--paper);border:4px solid var(--ink);padding:16px;box-shadow:0 6px 0 var(--ink)}
+.book h3{margin:0;font-size:26px;font-weight:400}
+.book .sub{margin:0 0 12px;color:#8a6a7a;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.st{aspect-ratio:1;border:3px dashed #c9b49a;display:grid;place-content:center;text-align:center;line-height:1.15;color:#b8a48c;font-size:15px}
+.st small{font-size:13px}
+.st.on{border:3px double var(--c);border-radius:50%;color:var(--c);background:#fffaf0;transform:rotate(var(--r))}
+.note{margin:12px 0 0;font-size:13px;color:#8a6a7a}
+.close{margin-top:14px;width:100%}
+.tabs{position:sticky;top:-20px;z-index:3;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:var(--paper);padding:8px 0 8px;margin:-8px 0 -4px;box-shadow:0 6px 6px -6px #3b2a3a40}
+.tabs{top:0}
+.panel>*{flex-shrink:0}
+.tab{flex:1 0 auto;white-space:nowrap;font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:3px solid var(--ink);padding:6px 10px;min-height:40px;cursor:pointer;border-radius:0}
+.tab.on{background:var(--ink);color:var(--paper)}.tab:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
+.mapbox{position:relative;border:3px solid var(--ink);background:#bfe6ee;box-shadow:5px 5px 0 #3b2a3a26;animation:pop .3s ease-out both}
+.mapbox canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges}
+.mapbox.kr{max-width:280px;margin:0 auto}
+.lbl{position:absolute;transform:translate(-10%,-100%);font-size:12px;line-height:1.2;background:var(--card);border:2px solid var(--ink);padding:1px 5px;white-space:nowrap;pointer-events:none}
+.lbl.r{transform:translate(-100%,-100%)}.lbl.b{transform:translate(-10%,0)}.lbl.r.b{transform:translate(-100%,0)}.lbl.dim{transform:translate(-50%,10%);background:var(--ink);color:var(--paper)}
+.num{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;display:grid;place-items:center;background:var(--rose);color:#fff;border:2px solid var(--ink);font-size:12px;line-height:1}
+.cap{margin:6px 0 0;text-align:center;font-size:14px;color:#8a6a7a}
+.course{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.course li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;background:var(--card);border:2px solid #e2d2b6;padding:8px 10px}
+.course .n{width:24px;height:24px;display:grid;place-items:center;background:var(--rose);color:#fff;border:2px solid var(--ink);font-size:13px}
+.course b{font-weight:400;font-size:16px}.course .when{margin-left:6px;font-size:12px;color:var(--leaf);border:1px solid var(--leaf);padding:0 5px;white-space:nowrap}
+.course small{display:block;font-size:14px;color:#6a5a66}
+.polaroid{margin:4px auto 0;max-width:290px;background:#fff;border:3px solid var(--ink);padding:10px 10px 12px;transform:rotate(-1.5deg);box-shadow:5px 5px 0 #3b2a3a26;animation:pop .3s ease-out both}
+.polaroid canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink)}
+.polaroid figcaption{margin-top:10px;text-align:center;font-size:16px;line-height:1.4;text-wrap:balance}
+.pframe{--s:polygon(0 8px,4px 8px,4px 4px,8px 4px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px));background:var(--ink);padding:4px;clip-path:var(--s);max-width:340px;width:100%;margin:2px auto 0;animation:pop .3s ease-out both}
+.pframe>.in{background:var(--card);padding:10px;clip-path:var(--s)}
+.pimg{position:relative;aspect-ratio:4/3;background:#2b2238;border:3px solid var(--ink);overflow:hidden}
+.pimg img,.pimg canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.pimg [hidden]{display:none!important}
+.pimg canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+.ptag{position:absolute;left:6px;bottom:6px;font-size:12px;background:#fffaf0e6;border:2px solid var(--ink);padding:0 6px}
+.pcap{margin:10px 0 0;text-align:center;font-size:16px;line-height:1.4;text-wrap:balance}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+.credit{font-size:12px;color:#8a6a7a;overflow-wrap:anywhere}
+.mini{font:inherit;font-size:13px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink);padding:4px 10px;min-height:36px;cursor:pointer;flex:none}
+.mini:active{transform:translateY(3px);box-shadow:none}
+.pbtn.pri{background:var(--rose);color:#fff}.pbtn.wide{width:100%;margin-top:10px}
+.row2{display:flex;gap:10px;margin-top:12px}.row2>*{flex:1}
+.over select,.over input[type=text],.over input:not([type]){font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:3px solid var(--ink);border-radius:0;padding:8px;min-height:44px;width:100%}
+.over [hidden]{display:none!important}
+.fl{display:grid;gap:4px;font-size:15px;margin-top:12px}
+.drop{position:relative;display:grid;place-items:center;aspect-ratio:4/3;border:3px dashed #c9b49a;background:var(--card);cursor:pointer;overflow:hidden;color:#8a6a7a}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.drop [hidden]{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:2px solid var(--ink);padding:4px 10px;min-height:36px;cursor:pointer}.chip.on{background:var(--leaf);color:#fff}
+.agree{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.4}.agree input{width:20px;height:20px;flex:none;margin-top:1px}
+.err{min-height:1.2em;margin:8px 0 0;color:#c8402a;font-size:14px}
+.feed{display:grid;gap:12px;margin-top:12px}
+.post{background:var(--card);border:3px solid var(--ink);box-shadow:4px 4px 0 #3b2a3a26}
+.pimg.sm{border:0;border-bottom:3px solid var(--ink)}
+.pb{padding:8px 10px}.pb b{font-weight:400;font-size:17px}.pb p{margin:2px 0 0;font-size:15px}.pb .tg{color:var(--leaf);font-size:13px}
+.pa{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:13px;color:#8a6a7a}
+.heart{font:inherit;font-size:14px;color:var(--rose);background:var(--paper);border:2px solid var(--rose);padding:2px 10px;min-height:36px;cursor:pointer}.heart.on{background:var(--rose);color:#fff}.heart:disabled{cursor:default;opacity:.8}
+.lnk{font:inherit;font-size:13px;color:#8a6a7a;background:none;border:0;text-decoration:underline;min-height:36px;padding:0 4px;cursor:pointer;margin-left:auto}.lnk:disabled{text-decoration:none;cursor:default}
+.ugchead{display:flex;align-items:center;justify-content:space-between;gap:10px}.ugchead p{margin:0;font-size:15px}
+.note{font-size:13px;color:#8a6a7a;margin:8px 0 0}.simh{margin:16px 0 0;font-weight:400;font-size:17px}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+.hud{top:calc(10px + env(safe-area-inset-top))}
+.over{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.menu{display:grid;gap:10px}.menu .pbtn{width:100%;text-align:left;padding:10px 12px}
+.pbtn.danger{color:#c8402a;border-color:#c8402a;box-shadow:0 4px 0 #c8402a}
+.lnk.inline{margin:0;min-height:0;padding:0;font-size:inherit;color:var(--leaf)}
+.rads{display:grid;gap:6px;margin:6px 0 4px}.rad{display:flex;gap:8px;align-items:center;font-size:15px;min-height:40px;background:var(--card);border:2px solid #e2d2b6;padding:6px 10px}.rad input{width:18px;height:18px}
+.blkrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:2px dashed #e2d2b6}
+.over.doc .book{display:flex;flex-direction:column;height:100%}.over.doc iframe{flex:1;width:100%;min-height:60vh;border:3px solid var(--ink);background:#fff;margin-top:10px}
+.toast{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9;background:var(--ink);color:var(--paper);padding:10px 16px;font-size:15px;max-width:88%;text-align:center;box-shadow:0 4px 0 #0004}
+.toast[hidden]{display:none}
+
+.ext{display:block;text-align:center;color:var(--leaf);font-size:15px;padding:10px;min-height:44px}
+@media (prefers-reduced-motion:reduce){.opt,.card,.mapbox,.polaroid,.pframe{animation:none}.fade{transition:none}}
+</style>
+</head>
+<body>
+<div class="game">
+  <div class="stage">
+    <canvas id="cv" width="96" height="120" aria-label="도트 풍경"></canvas>
+    <div class="fade" id="fade"></div>
+    <div class="hud">
+      <button class="pbtn" id="menuBtn" type="button">메뉴</button>
+      <div class="dots" id="dots"></div>
+      <button class="pbtn" id="passBtn" type="button">여권 0/30</button>
+    </div>
+  </div>
+  <div class="panel" id="panel"></div>
+  <div class="over" id="over" hidden>
+    <div class="book">
+      <h3>나의 여행 여권</h3>
+      <p class="sub" id="cnt"></p>
+      <div class="grid" id="grid"></div>
+      <p class="note">여행 정보는 가볍게 참고만 해 주세요. 떠나기 전 현지 날씨와 운영 시간을 꼭 확인하세요.</p>
+      <button class="pbtn close" id="closeBtn" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="over" id="alOver" hidden>
+    <div class="book">
+      <h3>모두의 여행 앨범</h3>
+      <p class="sub" id="alSub"></p>
+      <div class="row2"><select id="alFilter" aria-label="여행지 필터"></select><select id="alSort" aria-label="정렬"><option value="top">인기순</option><option value="new">최신순</option></select></div>
+      <button class="pbtn pri wide" id="alUp" type="button" hidden>내 여행 사진 올리기</button>
+      <div class="feed" id="feed"></div>
+      <button class="pbtn close" id="alClose" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="over" id="upOver" hidden>
+    <div class="book">
+      <h3>내 여행 사진 올리기</h3>
+      <p class="sub">다녀와서 좋았던 곳을 다른 여행자에게 추천해 주세요.</p>
+      <label class="drop"><input type="file" id="upFile" accept="image/*"><span id="dropTxt">눌러서 사진 고르기</span><img id="upPrev" alt="고른 사진 미리보기" hidden></label>
+      <label class="fl">어디인가요?<select id="upDest"></select></label>
+      <label class="fl" id="placeWrap" hidden>장소 이름<input id="upPlace" maxlength="30" placeholder="예: 군산 경암동 철길마을"></label>
+      <label class="fl">한 줄 추천<input id="upText" maxlength="60" placeholder="예: 해 질 녘 골목이 정말 예뻐요"></label>
+      <div class="fl">어떤 느낌이었나요? (여러 개 고를 수 있어요)<div class="chips" id="upTags"></div></div>
+      <label class="agree"><input type="checkbox" id="upOk"><span>제가 직접 찍은 사진이고, 다른 여행자에게 보여주는 데 동의해요. 사진 속 위치 정보는 지우고 올라가요.</span></label>
+      <p class="err" id="upErr" role="alert"></p>
+      <div class="row2"><button class="pbtn" id="upCancel" type="button">취소</button><button class="pbtn pri" id="upSend" type="button">올리기</button></div>
+    </div>
+  </div>
+  <div class="over" id="joinOver" hidden>
+    <div class="book">
+      <h3>여행자 등록</h3>
+      <p class="sub">사진을 올리거나 좋아요를 누르려면 닉네임이 필요해요. 이메일이나 전화번호는 받지 않아요.</p>
+      <label class="fl">닉네임 (1~12자)<input id="jNick" maxlength="12" placeholder="예: 느긋한여행자"></label>
+      <label class="agree"><input type="checkbox" id="jAge"><span>(필수) 만 14세 이상이에요.</span></label>
+      <label class="agree"><input type="checkbox" id="jTerms"><span>(필수) <button type="button" class="lnk inline" data-doc="terms.html">이용약관</button>에 동의해요.</span></label>
+      <label class="agree"><input type="checkbox" id="jPriv"><span>(필수) <button type="button" class="lnk inline" data-doc="privacy.html">개인정보 처리방침</button>에 동의해요.</span></label>
+      <p class="note">불쾌하거나 부적절한 사진, 남의 사진은 올릴 수 없어요. 신고된 사진은 검토 후 삭제되고, 규칙을 어기면 이용이 제한될 수 있어요.</p>
+      <p class="err" id="jErr" role="alert"></p>
+      <div class="row2"><button class="pbtn" id="jCancel" type="button">나중에</button><button class="pbtn pri" id="jOk" type="button">시작하기</button></div>
+    </div>
+  </div>
+  <div class="over" id="moreOver" hidden>
+    <div class="book">
+      <h3 id="mWho">사진</h3>
+      <p class="sub">문제가 있는 사진이면 알려 주세요. 신고가 3번 쌓이면 바로 숨겨지고, 운영자가 24시간 안에 검토해요.</p>
+      <div id="mReasons" class="rads"></div>
+      <button class="pbtn pri wide" id="mReport" type="button">신고하기</button>
+      <button class="pbtn wide" id="mBlock" type="button">이 사용자 차단하기</button>
+      <button class="pbtn close" id="mClose" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="over" id="menuOver" hidden>
+    <div class="book">
+      <h3>메뉴</h3>
+      <p class="sub" id="mNickLine"></p>
+      <div class="menu">
+        <button class="pbtn" id="sndToggle" type="button">소리 끄기</button>
+        <button class="pbtn" type="button" data-doc="terms.html">이용약관</button>
+        <button class="pbtn" type="button" data-doc="privacy.html">개인정보 처리방침</button>
+        <button class="pbtn" id="blockedBtn" type="button">차단한 사용자 관리</button>
+        <button class="pbtn" id="contactBtn" type="button">문의하기</button>
+        <p class="note">문의 이메일: <span id="contactAddr"></span></p>
+        <button class="pbtn danger" id="delAcct" type="button">내 계정과 데이터 삭제</button>
+        <p class="note">여행 정거장 1.0.0</p>
+      </div>
+      <button class="pbtn close" id="menuClose" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="over" id="blkOver" hidden>
+    <div class="book"><h3>차단한 사용자</h3><div id="blkList"></div><button class="pbtn close" id="blkClose" type="button">닫기</button></div>
+  </div>
+  <div class="over doc" id="docOver" hidden>
+    <div class="book"><h3 id="docTitle">문서</h3><iframe id="docFrame" title="문서 내용"></iframe><button class="pbtn close" id="docClose" type="button">닫기</button></div>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+</div>
+<script>
+(()=>{
+const W=96,H=120,cv=document.getElementById('cv');let x=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>{const A=hex(a),B=hex(b);return 'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')'};
+const R=(c,X,Y,w,h)=>{x.fillStyle=c;x.fillRect(Math.round(X),Math.round(Y),Math.round(w),Math.round(h))};
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const hh=(a,b)=>{const s=Math.sin(a*12.9898+b*78.233)*43758.5453;return s-Math.floor(s)};
+const stars=Array.from({length:42},()=>[rnd()*W|0,rnd()*60|0,rnd()*6]);
+const BL=[];for(let bx=0;bx<W;){const w=6+(rnd()*8|0);BL.push([bx,w,18+(rnd()*30|0)]);bx+=w+1}
+
+function sky(top,bot,y1,n=8){const h=Math.ceil(y1/n);for(let i=0;i<n;i++)R(mix(top,bot,i/(n-1)),0,i*h,W,h)}
+function hills(c,base,a1,f1,a2,f2,off=0){x.fillStyle=c;for(let X=0;X<W;X++){const y=Math.round(base+Math.sin((X+off)*f1)*a1+Math.sin((X+off)*f2)*a2);x.fillRect(X,y,1,H-y)}}
+function peaks(c,L,base,cap){for(let X=0;X<W;X++){let g=0;for(const q of L)g=Math.max(g,q[1]-Math.abs(X-q[0])*q[2]);if(g<=0)continue;const top=Math.round(base-g);R(c,X,top,1,base-top);if(cap&&g>cap[1])R(cap[0],X,top,1,Math.min(6,Math.round(g-cap[1]))+((X*7)%3))}}
+function circ(c,cx,cy,r){x.fillStyle=c;for(let yy=-r;yy<=r;yy++){const w=Math.round(Math.sqrt(r*r-yy*yy));x.fillRect(Math.round(cx-w),Math.round(cy+yy),w*2+1,1)}}
+function spr(rows,pal,X,Y){rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch!=='.'){x.fillStyle=pal[ch];x.fillRect(X+i,Y+j,1,1)}}})}
+function tri(cx,base,h,w,c){for(let i=0;i<h;i++){const ww=Math.max(1,Math.round(w*(i/h)));R(c,cx-ww/2,base-h+i,ww,1)}R('#6b4434',cx,base,1,3)}
+function cloud(X,Y,c){R(c,X+3,Y-1,5,1);R(c,X+1,Y,10,1);R(c,X,Y+1,14,2)}
+function clouds(t,c){[[0,12,2],[44,6,1.4],[72,20,2.6]].forEach(([o,y,s])=>cloud(((o+t*s)%(W+30))-16,y,c))}
+function twinkle(t){for(const s of stars)if(Math.sin(t*2+s[2])>-.5)R('#ffffff',s[0],s[1],1,1)}
+
+const TRV=["..hhh...",".hhhhh..",".hssss..","..sss...",".rrrrrb.","srrrrrbb",".rrrrrb.","..ppp...","..p.p...","..k.k..."];
+const TP={h:'#5a3b2e',s:'#f2c7a5',r:'#e86f5a',b:'#7a9e7e',p:'#3d4a6b',k:'#3b2a3a'};
+const CAT=[".o....o.",".nnnnnn.","nnnnynnn",".oooooo.",".okooko.",".oowwoo.","..nnnn..",".onnnno.","..nnnn..","..o..o.."];
+const CP={o:'#e9a04b',n:'#2f3e6b',y:'#f6d55c',k:'#3b2a3a',w:'#fff6e8'};
+const me=(X,Y)=>spr(TRV,TP,X,Y);
+
+/* ---------- 정거장 ---------- */
+let puffs=[];
+function train(tx,moving,dt){
+  const g='#4f8a6b',gd='#3f6e57',cr='#f4ead2',wn='#ffe9a0',dk='#2e2a33';
+  R(dk,tx+4,64,4,12);R(gd,tx+3,63,6,2);
+  R(g,tx,76,13,18);R(wn,tx,80,2,3);R(dk,tx-2,89,3,5);
+  R(gd,tx+11,64,15,2);R(g,tx+12,66,13,28);R(wn,tx+15,70,6,6);
+  R(cr,tx,86,25,2);
+  for(let k=0;k<2;k++){const cx=tx+28+k*30;R(dk,cx-3,88,3,2);R(gd,cx-1,66,28,2);R(cr,cx,68,26,26);R(g,cx,84,26,2);
+    for(let i=0;i<3;i++){R('#c8b48a',cx+2+i*8,71,7,8);R(wn,cx+3+i*8,72,5,6)}
+    circ(dk,cx+5,95,2);circ(dk,cx+21,95,2)}
+  circ(dk,tx+5,95,2);circ(dk,tx+19,95,2);
+  if(moving&&Math.random()<dt*9)puffs.push({x:tx+6,y:62,a:1});
+}
+function drawPuffs(dt){puffs=puffs.filter(p=>(p.a-=dt*.7)>0);for(const p of puffs){p.y-=dt*8;p.x+=dt*6;x.globalAlpha=p.a*.8;circ('#ffffff',p.x,p.y,2+Math.round((1-p.a)*3));x.globalAlpha=1}}
+let hub='info';
+const CPS={train:CP,bus:{...CP,n:'#3f6e57'},plane:{...CP,n:'#b0463c'},ship:{...CP,n:'#2f5a9a',y:'#ffffff'},info:{...CP,n:'#8a5aa8'}};
+function roll(now){if(!dep)return{tx:null,hide:false,moving:false};const e=(now-dep.t0)/1000;let tx,moving=false;
+  if(e<2.4){const p=e/2.4;tx=100-88*(1-(1-p)**3);moving=true}else if(e<3.8)tx=12;else if(e<5.6){const p=(e-3.8)/1.8;tx=12-p*p*120;moving=true}else{tx=-120;finish()}
+  return{tx,moving,hide:e>3.1}}
+function finish(){if(!dep.done){dep.done=1;dep.cb()}}
+function bus(tx,moving,dt){const m='#7cc4b0',md='#5aa894';
+  R(md,tx+1,64,56,2);R(m,tx,66,58,28);R('#f4ead2',tx,86,58,4);R('#3b2a3a',tx,94,58,1);
+  R('#bfe6ee',tx+1,69,6,14);R('#ffffff',tx+2,70,1,4);R('#2e2a33',tx+1,66,10,3);R('#ffb040',tx+2,67,8,1);
+  for(let i=0;i<5;i++){R('#bfe6ee',tx+17+i*8,70,6,9);R('#ffffff',tx+18+i*8,71,1,3)}
+  R('#8ab8c8',tx+9,70,5,22);R(md,tx+11,70,1,22);R('#fff3a0',tx,88,2,2);R('#e86f5a',tx+56,88,2,2);
+  [14,46].forEach(w=>{circ('#2e2a33',tx+w,96,3);R('#c8c8d4',tx+w,96,1,1)});
+  if(moving&&Math.random()<dt*7)puffs.push({x:tx+60,y:92,a:.7})}
+function plane(px,py,gear){const wh='#f4f4f8';
+  for(let i=0;i<12;i++)R('#e86f5a',px+48+Math.round(i*.5),py+67-i,10-Math.round(i*.4),1);
+  R(wh,px+2,py+68,56,12);R(wh,px,py+70,2,9);R(wh,px-1,py+72,1,6);R('#d8d8e2',px+2,py+78,56,2);
+  R('#3a4a6a',px+2,py+71,5,2);for(let X=px+14;X<px+48;X+=4)R('#5a7a9a',X,py+72,2,2);
+  R('#c8c8d4',px+9,py+70,4,7);R('#e86f5a',px+2,py+76,56,1);R('#d8d8e2',px+50,py+72,9,2);
+  for(let i=0;i<4;i++)R('#c0c0cc',px+20+i*3,py+79+i,18,1);R('#9a9aa8',px+24,py+80,9,4);R('#6a6a78',px+24,py+81,1,2);
+  if(gear){R('#3b2a3a',px+8,py+80,1,3);circ('#2e2a33',px+8,py+84,1);R('#3b2a3a',px+36,py+82,1,2);circ('#2e2a33',px+35,py+84,1);circ('#2e2a33',px+38,py+84,1)}}
+function hubTrain(t,now,dt){
+  sky('#6d5fa0','#ffc98f',64,8);circ('#ffe7b0',72,52,9);clouds(t,'#f7d4c4');hills('#a97a9e',54,3,.07,2,.19);hills('#7f6a92',62,2,.11,1,.31,10);
+  R('#8fae6e',0,66,W,12);for(let i=0;i<4;i++){const X=44+i*13;circ('#5f7f52',X+2,63,3);R('#4a3a35',X+2,66,1,4)}
+  for(let i=0;i<5;i++)R('#c8574d',3+i*3,54-i*2,32-i*6,2);R('#f3e2c7',6,56,26,22);R('#9e3f39',6,56,26,1);circ('#fff4e3',19,49,2);R('#3b2a3a',19,48,1,2);
+  R('#c8a878',9,60,9,8);R('#ffe9a0',10,61,7,6);R('#c8a878',13,61,1,6);R('#8a5a4a',22,65,7,13);R('#f6d55c',27,71,1,1);
+  R('#3b2a3a',40,58,1,20);R('#ffe9a0',39,56,3,3);x.globalAlpha=.25+.08*Math.sin(t*3);circ('#ffe9a0',40,57,6);x.globalAlpha=1;
+  R('#8a5a4a',62,69,14,1);R('#8a5a4a',62,73,14,2);R('#6b4434',63,75,1,3);R('#6b4434',74,75,1,3);R('#c8574d',84,74,6,4);circ('#ffb3c6',85,72,1);circ('#fff3a0',88,71,1);R('#5f7f52',86,72,1,2);
+  R('#e6d2b0',0,78,W,1);R('#d2bc98',0,79,W,4);R('#a89078',0,83,W,11);R('#937b65',0,88,W,1);for(let X=0;X<W;X+=8){R('#937b65',X,83,1,5);R('#937b65',X+4,89,1,5)}R('#fff4e3',0,82,W,1);
+  const r=roll(now);spr(CAT,CPS.train,31,68);if(!r.hide)me(50,68);
+  R('#7a6660',0,94,W,10);for(let X=0;X<W;X+=5)R('#4a3a35',X,99,3,3);R('#d9d3dc',0,97,W,1);R('#8a8290',0,98,W,1);
+  R('#6f9460',0,104,W,16);R('#7fa36b',0,104,W,1);[[8,110,'#ffd1dc'],[22,114,'#fff3a0'],[40,109,'#ffffff'],[61,113,'#ffd1dc'],[78,110,'#fff3a0'],[90,115,'#ffffff']].forEach(f=>R(f[2],f[0],f[1],1,1));
+  if(r.tx!==null)train(r.tx,r.moving,dt);drawPuffs(dt)}
+function hubBus(t,now,dt){
+  sky('#8fb8e0','#ffd8b0',62,8);circ('#fff0c8',76,30,6);clouds(t,'#ffffff');
+  for(const [bx,w,h] of BL)R('#b4bcd8',bx,60-h*.5,w,h*.5+4);
+  R('#4f8a6b',4,40,48,6);for(let i=0;i<9;i++)R('#fffaf0',8+i*5,42,3,2);R('#ece4d4',4,46,48,32);R('#d8cfc0',4,46,48,1);
+  for(let X=7;X<50;X+=7)R('#bfe6ee',X,50,5,9);R('#8ab8c8',22,64,12,14);R('#6a9aa8',27,64,1,14);
+  R('#6b4434',61,64,2,14);circ('#6f9a4e',62,60,6);circ('#8fbf6a',60,58,2);
+  R('#d8cfc0',0,78,W,12);for(let X=0;X<W;X+=8)R('#c8bfb0',X,78,1,12);R('#a89a8a',0,90,W,2);
+  R('#3b2a3a',86,62,1,16);circ('#5a8fd0',86,60,3);R('#ffffff',85,59,3,2);R('#8a5a4a',66,73,12,2);R('#6b4434',67,75,1,3);R('#6b4434',76,75,1,3);
+  const r=roll(now);spr(CAT,CPS.bus,30,69);if(!r.hide)me(48,69);
+  R('#5a5560',0,92,W,16);for(let X=2;X<W;X+=10)R('#f4f0ea',X,100,5,1);R('#d8cfc0',0,108,W,12);R('#a89a8a',0,108,W,1);
+  [[10,113,'#e86f5a'],[30,115,'#f6d55c'],[58,113,'#ffffff'],[80,116,'#e86f5a']].forEach(f=>{circ('#6f9a4e',f[0],f[1],2);R(f[2],f[0],f[1]-1,1,1)});
+  if(r.tx!==null)bus(r.tx,r.moving,dt);drawPuffs(dt)}
+function hubPlane(t,now,dt){
+  sky('#7a9ad8','#ffcfa8',66,8);circ('#fff0c8',18,40,6);clouds(t,'#ffffff');hills('#9a8ab8',58,2,.1,1,.3);
+  R('#6a7a9a',0,48,60,2);R('#c8d8e8',0,50,58,28);for(let X=2;X<56;X+=6)R('#a8c0d8',X,52,4,22);R('#2f3e6b',8,43,24,5);for(let i=0;i<6;i++)R('#f6d55c',10+i*4,45,2,1);
+  R('#d8d8e2',72,40,5,38);R('#6a7a9a',68,34,13,2);R('#bfe6ee',69,36,11,4);R('#6a7a9a',69,40,11,1);if(Math.sin(t*4)>0)R('#e8462a',74,32,1,2);
+  R('#8a8892',0,78,W,42);R('#9a98a2',0,78,W,1);R('#f6d55c',0,90,W,1);for(let X=0;X<W;X+=8)R('#f4f0ea',X,104,4,1);
+  for(let X=4;X<W;X+=8){R(Math.sin(t*3+X)>0?'#f6d55c':'#a89a6a',X,96,1,1);R(Math.sin(t*3+X+2)>0?'#f6d55c':'#a89a6a',X,114,1,1)}
+  let px=40,py=0,gear=true,stairs=true,tv=[24,74],hide=false;
+  if(dep){const e=(now-dep.t0)/1000;
+    if(e<1.6)tv=[24+34*(e/1.6),74];else if(e<2.4){const p=(e-1.6)/.8;tv=[58-8*p,74-14*p]}else hide=true;
+    if(e>2.8)stairs=false;
+    if(e>3.2){if(!dep.s1){dep.s1=1;sfx('takeoff')}const p=e-3.2;px=40-p*p*9;if(p>1.6){const q=p-1.6;py=-q*q*16;gear=q<.4}}
+    if(px<-70||py<-90)finish()}
+  spr(CAT,CPS.plane,10,74);
+  plane(Math.round(px),Math.round(py),gear);
+  if(stairs){R('#f6d55c',48,84,18,3);circ('#2e2a33',51,88,1);circ('#2e2a33',62,88,1);for(let i=0;i<7;i++){R('#d8d8e2',50+i*2,70+i*2,3,2);R('#6a6a78',52+i*2,67+i*2,1,1)}}
+  if(!hide)me(Math.round(tv[0]),Math.round(tv[1]))}
+function ship(tx,moving,dt,t){const b=Math.round(Math.sin(t*2)*.8),wh='#f4f4f8';
+  R('#e86f5a',tx+46,50+b,7,10);R('#2e2a33',tx+46,50+b,7,2);
+  R(wh,tx+18,60+b,36,10);R('#3a4a6a',tx+18,62+b,6,3);for(let X=tx+27;X<tx+52;X+=4)R('#5a7a9a',X,63+b,2,3);R('#c8c8d4',tx+18,59+b,36,1);
+  R(wh,tx+10,70+b,52,10);for(let X=tx+13;X<tx+60;X+=4)R('#5a7a9a',X,73+b,2,3);for(let X=tx+10;X<tx+62;X+=2)R('#c8c8d4',X,69+b,1,1);
+  for(let i=0;i<16;i++)R(wh,tx+Math.round(i*.5),80+i+b,72-Math.round(i*.5),1);
+  R('#2f5a9a',tx+3,86+b,69,2);for(let X=tx+12;X<tx+68;X+=6)R('#3a4a6a',X,83+b,2,2);R('#c8402a',tx+7,93+b,65,3);
+  if(moving&&Math.random()<dt*6)puffs.push({x:tx+49,y:48,a:.8})}
+function hubShip(t,now,dt){
+  sky('#8ab8e8','#ffd8c0',56,8);circ('#fff3c8',30,40,6);clouds(t,'#ffffff');
+  R('#5a9ad0',0,56,W,14);for(let X=58;X<92;X++){const h=Math.round(Math.sin((X-58)/34*Math.PI)*6);R('#6a8a7a',X,56-h,1,h)}
+  for(let j=0;j<3;j++)for(let k=0;k<3;k++){x.globalAlpha=.5;R('#ffffff',((k*31+j*13+t*(2+j))%(W+8))-4,59+j*4,3,1);x.globalAlpha=1}
+  R('#d9d3dc',70,64,26,3);R('#ffffff',86,48,5,16);R('#e86f5a',86,52,5,2);R('#e86f5a',86,58,5,2);R('#3b2a3a',85,46,7,2);R(Math.sin(t*3)>0?'#fff3a0':'#c8b48a',87,48,3,2);
+  for(let i=0;i<3;i++){const gx=((i*37+t*(5+i))%(W+20))-10,gy=18+i*9+Math.round(Math.sin(t*3+i)*1);R('#ffffff',gx,gy,2,1);R('#ffffff',gx+3,gy,2,1);R('#ffffff',gx+2,gy+1,1,1)}
+  R('#2f5a9a',0,44,32,3);R('#f1e4cc',2,47,28,23);for(let X=5;X<28;X+=6)R('#bfe6ee',X,51,4,6);R('#8ab8c8',12,60,8,10);R('#f6d55c',8,45,16,1);
+  R('#b8b0a8',0,70,W,10);R('#c8c0b8',0,70,W,1);R('#8a8278',0,79,W,2);[[40,74],[66,74]].forEach(([a,b])=>{R('#3b2a3a',a,b,3,5);R('#5a5458',a,b,3,1)});
+  const r=roll(now);spr(CAT,CPS.ship,34,61);if(!r.hide)me(52,61);
+  R('#4f8fc8',0,81,W,39);for(let i=0;i<5;i++)R(mix('#4f8fc8','#2a5a9a',i/4),0,88+i*7,W,7);
+  if(r.tx!==null)ship(r.tx,r.moving,dt,t);
+  for(let X=0;X<W;X++)R('#7ab4e0',X,96+Math.round(Math.sin(X*.3+t*2)),1,2);
+  for(let j=0;j<4;j++)for(let k=0;k<3;k++){x.globalAlpha=.6;R('#ffffff',((k*29+j*19+t*(3+j))%(W+8))-4,102+j*5,4,1);x.globalAlpha=1}
+  drawPuffs(dt)}
+function hubInfo(t,now,dt){
+  sky('#8ec5e8','#ffe6c0',60,8);circ('#fff3c8',74,44,8);clouds(t,'#ffffff');hills('#8fbf8a',56,3,.08,1,.23);hills('#6fa070',64,2,.12,1,.3,7);
+  R('#7fb06e',0,72,W,6);R('#e8dcc4',0,78,W,42);for(let y=82;y<120;y+=6)R('#ddd0b4',0,y,W,1);for(let y=78;y<120;y+=6)for(let X=(y/6%2)*6;X<W;X+=12)R('#ddd0b4',X,y,1,6);
+  R('#2f5a9a',16,40,16,8);R('#fffaf0',23,42,2,1);R('#fffaf0',23,44,2,3);R('#8a5a4a',23,48,1,2);
+  for(let i=0;i<8;i++){R(i%2?'#e86f5a':'#fffaf0',8+i*4,50,4,6);R(i%2?'#e86f5a':'#fffaf0',9+i*4,56,2,1)}
+  R('#8a5a4a',9,56,1,8);R('#8a5a4a',38,56,1,8);R('#c8946a',10,64,28,14);R('#a8784a',8,63,32,2);R('#b07a50',10,70,28,1);
+  [[12,'#f6d55c'],[16,'#5a8fd0'],[31,'#e86f5a'],[35,'#4f8a6b']].forEach(([a,c])=>R(c,a,60,3,3));
+  R('#8a5a4a',48,66,1,12);R('#8a5a4a',62,66,1,12);R('#8a5a4a',45,51,20,16);R('#bfe6ee',46,52,18,14);
+  circ('#a8d08a',51,57,3);circ('#a8d08a',58,61,3);R('#a8d08a',55,55,4,3);R('#e86f5a',58,57,1,3);R('#e86f5a',57,56,3,1);
+  R('#8a5a4a',82,44,2,34);R('#e86f5a',72,47,10,3);R('#e86f5a',71,48,1,1);R('#5a8fd0',84,52,10,3);R('#5a8fd0',94,53,1,1);R('#f6d55c',73,57,9,3);R('#f6d55c',72,58,1,1);R('#4f8a6b',84,62,9,3);R('#4f8a6b',93,63,1,1);
+  [[4,74,'#ffb3c6'],[90,74,'#fff3a0']].forEach(([a,b,c])=>{R('#c8574d',a,b,6,4);circ('#6f9a4e',a+3,b-2,2);R(c,a+2,b-3,1,1);R(c,a+4,b-2,1,1)});
+  spr(CAT,CPS.info,26,68);me(66,68)}
+const HUBS={info:hubInfo,train:hubTrain,bus:hubBus,plane:hubPlane,ship:hubShip};
+
+
+/* ---------- 여행지 풍경 ---------- */
+const SC={
+sea(p,t){
+  sky(p.sky[0],p.sky[1],60);circ(p.sun,66,40,7);clouds(t,'#ffffff');
+  if(p.back==='peaks')peaks('#7a8aa8',[[14,26,.9],[38,32,.8],[62,20,1]],60,null);
+  if(p.isles)p.isles.forEach(([a,b,h])=>{for(let X=a;X<b;X++){const k=Math.round(Math.sin((X-a)/(b-a)*Math.PI)*h);R(p.island,X,59-k,1,k+1)}});
+  if(p.island&&!p.isles)for(let X=8;X<34;X++){const h=Math.round(Math.sin((X-8)/26*Math.PI)*5);R(p.island,X,59-h,1,h+1)}
+  if(p.fg==='lighthouse'){for(let X=0;X<30;X++){const h=Math.round(16-X*.45);R('#c8a888',X,60-h,1,h)}
+    [[2,46,'#f4f0ea','#5a8fd0'],[10,49,'#ffffff','#e86f5a'],[18,52,'#f4f0ea','#5a8fd0']].forEach(b=>{R(b[2],b[0],b[1],7,6);R(b[3],b[0]-1,b[1]-1,9,2);R('#ffe9a0',b[0]+2,b[1]+2,2,2)})}
+  for(let i=0;i<6;i++)R(mix(p.sea[0],p.sea[1],i/5),0,60+i*6,W,6);
+  for(let k=0;k<6;k++){const w=4+k+Math.round(Math.sin(t*2+k)*2);x.globalAlpha=.55;R('#fff8dc',66-w/2,61+k*6,w,1);x.globalAlpha=1}
+  for(let j=0;j<6;j++)for(let k=0;k<3;k++){const X=((k*37+j*17+t*(3+j*1.5))%(W+12))-6;x.globalAlpha=.6;R('#ffffff',X,63+j*6,3+j,1);x.globalAlpha=1}
+  if(p.fg==='lighthouse'){R('#d9d3dc',62,62,34,3);R('#ffffff',80,42,7,20);R('#e86f5a',80,47,7,3);R('#e86f5a',80,54,7,3);R('#3b2a3a',79,40,9,2);R(Math.sin(t*3)>0?'#fff3a0':'#c8b48a',82,42,3,3)}
+  if(p.fg==='karst'){[[2,8,34,'#8aa8a0'],[16,6,40,'#8aa8a0'],[58,9,30,'#4f6a5a'],[74,7,40,'#4f6a5a'],[86,8,28,'#4f6a5a']].forEach(([a,w,top,c])=>{R(c,a,top,w,94-top);circ(c,a+w/2,top+1,Math.floor(w/2));R('#5f8a5a',a,top,w,2);R('#6a8a7a',a,top+2,1,90-top)});
+    const b=Math.round(Math.sin(t*1.5));R('#6b4434',40,86+b,16,3);R('#6b4434',38,85+b,2,2);R('#e8843a',43,72+b,5,13);R('#e8843a',49,75+b,4,10);for(let y=74;y<85;y+=3){R('#c8642a',43,y+b,5,1);R('#c8642a',49,y+2+b,4,1)}}
+  if(p.fg==='santorini'){for(let X=0;X<42;X++){const h=Math.round(40-X*.75);R('#a8584a',X,96-h,1,h)}[[1,58,1],[11,60,0],[21,66,1],[4,68,0],[15,72,1],[28,76,0]].forEach(([a,b,dm])=>{if(dm)circ('#2f5ab8',a+4,b,3);R('#ffffff',a,b,9,6);R('#2f5ab8',a+2,b+2,1,2);R('#2f5ab8',a+6,b+2,1,2)})}
+  if(p.fg==='cliff'){for(let X=0;X<34;X++){const top=Math.round(30+X*.35+Math.sin(X*.5)*2);R('#6a6266',X,top,1,96-top);R('#4f8a4e',X,top,1,3);if(X%5===0)R('#857c80',X,top+6,1,20)}R('#6a6266',73,50,5,46);R('#4f8a4e',73,49,5,2);R('#857c80',74,53,1,40)}
+  R(p.sand,0,96,W,24);
+  for(let X=0;X<W;X++)R('#ffffff',X,95+Math.round(Math.sin(X*.18+t*1.5)),1,1);
+  if(p.fg==='cafe')[[16,'#e86f5a'],[76,'#f6d55c']].forEach(([u,c])=>{R('#fffaf0',u,84,1,16);for(let r=0;r<4;r++)R(c,u-2-r*2,80+r,5+r*4,1);R('#fffaf0',u-6,99,13,1)});
+  if(p.fg==='boat'){const b=Math.round(Math.sin(t*2));R('#c8574d',62,80+b,16,3);R('#c8574d',63,83+b,14,1);R('#fffaf0',66,75+b,7,5);R('#5a8fd0',67,76+b,2,2);R('#3b2a3a',72,70+b,1,5)}
+  if(p.fg==='palm'){for(let k=0;k<34;k++)R('#8a6a4a',82-Math.round((k/34)**2*6),66+k,2,1);
+    const s=Math.sin(t*1.2);[[-1,-.2],[-1,.3],[1,-.2],[1,.3],[0,-.6]].forEach(([dx,dy])=>{for(let i=0;i<11;i++)R('#3f8a4a',82+dx*i,66+dy*i+i*i*.07+s*i*.06,2,1)})}
+  me(44,92);
+  if(p.fg==='stone')for(let i=0;i<9;i++){const X=i*11+(i%2)*2-2;R('#3e3a3c',X+1,105,9,1);R('#3e3a3c',X,106,11,6);R('#2e2a2c',X,111,11,1);R('#6a6266',X+2,106,3,1);R('#55505a',X+7,108,2,1)}
+},
+forest(p,t){
+  sky(p.sky[0],p.sky[1],70);clouds(t,'#ffffff');
+  if(p.fg==='bamboo'){
+    R('#b8e0a8',0,30,W,70);
+    for(let L=0;L<2;L++){const col=L?'#5f9a4e':'#94c882',dk=L?'#4a7a3c':'#7fb06e',n=L?8:12,w=L?3:2;
+      for(let i=0;i<n;i++){const X=Math.round(i*(W/n)+L*5+(i*7)%5),s=Math.round(Math.sin(t*1.1+i+L*2)*(L?1.4:.8));
+        R(col,X+s,0,w,40);R(col,X,40,w,58);for(let y=9;y<98;y+=13)R(dk,y<40?X+s:X,y,w,1);
+        R('#9ccf6a',X+s+w,10+(i*9)%20,4,1);R('#9ccf6a',X+s-3,24+(i*5)%16,3,1)}}
+    R('#6f9a4e',0,96,W,24);
+  }else if(p.fg==='meta'){hills('#a8c8a0',56,2,.1,1,.3);R('#8fb87a',0,64,W,32);
+    for(let k=5;k>=0;k--){const f=1-k/6;for(const sd of[-1,1])tri(48+sd*(8+f*34),Math.round(66+f*30),Math.round(14+f*50),Math.round(4+f*12),k%2?'#d8843a':'#c8642a')}
+    R('#7fa36b',0,96,W,24);
+  }else if(p.fg==='tea'){hills('#9ac88a',52,3,.08,1,.2);
+    for(let r=0;r<10;r++){const y=58+r*4;for(let X=0;X<W;X++){const yy=y+Math.round(Math.sin((X+r*11)*.18)*1.5);R(r%2?'#3f8a3e':'#4f9a4a',X,yy,1,4);if((X+r)%4===0)R('#7cc06a',X,yy,1,1)}}
+    R('#2f5a3a',8,30,3,28);R('#2f5a3a',14,36,3,22);R('#2f5a3a',84,34,3,24);R('#4f9a4a',0,96,W,24);
+  }else if(p.fg==='reed'){circ('#fff0c8',70,48,6);R('#c89a48',0,58,W,40);for(let y=60;y<96;y++){const X=48+Math.round(Math.sin(y*.12)*20);R('#8aa8c8',X-5,y,10,1)}
+    for(let i=0;i<120;i++){const X=hh(i,1)*W|0,y0=56+hh(i,2)*38|0,sw=Math.round(Math.sin(t*1.2+i));R(i%2?'#d8b060':'#b8883a',X,y0,1,96-y0);R('#f0d898',X+sw,y0-2,2,2)}
+    R('#b8883a',0,96,W,24);
+  }else if(p.fg==='terrace'){hills('#5f8a4e',50,3,.1,1,.25);R('#5a5458',38,40,6,20);R('#5a5458',52,40,6,20);for(let i=0;i<3;i++){R('#5a5458',39+i,36-i*2,4-i*2,2);R('#5a5458',53+i,36-i*2,4-i*2,2)}
+    for(let r=0;r<8;r++){const y=58+r*5;R(r%2?'#7cc05a':'#6ab04a',0,y,W,5);for(let X=0;X<W;X++)R('#4f8a3e',X,y+Math.round(Math.sin(X*.12+r*1.3)),1,1);R('#bfe6ee',hh(r,3)*W,y+2,4,1)}
+    for(let k=0;k<30;k++)R('#8a6a4a',84-Math.round((k/30)**2*5),66+k,2,1);[[-1,-.2],[-1,.3],[1,-.2],[1,.3],[0,-.6]].forEach(([dx,dy])=>{for(let i=0;i<10;i++)R('#3f8a4a',84+dx*i,66+dy*i+i*i*.07,2,1)});
+    R('#6ab04a',0,96,W,24);
+  }else{
+    hills('#9ab87a',56,3,.09,1,.27);
+    for(let i=0;i<10;i++)R(p.gold,68-Math.max(1,12-i*1.2)/2,58-i*2,Math.max(1,12-i*1.2),2);
+    if(Math.sin(t*2)>0)R('#fffbe0',68,38,1,1);
+    R('#6f9a4e',0,70,W,26);
+    [[10,64,10,'#3f6e3e'],[26,68,8,'#4f8a4e'],[86,62,11,'#3f6e3e'],[90,74,7,'#4f8a4e']].forEach(([X,Y,r,c])=>{R('#6b4434',X-1,Y,3,24);circ(c,X,Y,r);circ('#6aa85a',X-2,Y-3,Math.round(r/3))});
+    R('#7fb05e',0,96,W,24);
+  }
+  for(let y=96;y<120;y++){const h=4+(y-96)*.9;R(p.ground,48-h,y,h*2,1)}
+  me(44,90);
+},
+snow(p,t){
+  sky(p.sky[0],p.sky[1],72);
+  if(p.night)twinkle(t);
+  if(p.aurora)for(let X=0;X<W;X++){const y=16+Math.sin(X*.07+t*.4)*6+Math.sin(X*.19+t*.7)*2;x.globalAlpha=.3;R('#6effb4',X,y,1,14+Math.round(Math.sin(X*.3+t)*4));x.globalAlpha=.2;R('#b48cff',X,y-6,1,6);x.globalAlpha=1}
+  else if(p.night)circ('#fff4c8',76,16,5);
+  else clouds(t,'#ffffff');
+  peaks(p.mtn,[[18,34,.9],[52,44,.8],[86,30,1]],76,['#ffffff',18]);
+  hills('#e6edf9',76,2,.1,1,.3);
+  R('#f4f7ff',0,86,W,34);R('#dfe7f6',0,104,W,2);R('#dfe7f6',0,112,W,1);
+  [[4,80],[90,82],[34,79]].forEach(([X,Y])=>{for(let i=0;i<4;i++)R('#3f6e57',X-i,Y-8+i*2,1+i*2,2);R('#ffffff',X-1,Y-8,3,1);R('#6b4434',X,Y,1,3)});
+  for(const [hx,c] of p.houses){R('#e8d8c0',hx,74,16,12);for(let i=0;i<5;i++)R(c,hx-2+i*2,73-i,20-i*4,1);R('#ffffff',hx-2,72-0,20,1);R('#ffffff',hx+4,68,8,1);
+    R(p.night?'#ffd27a':'#c8e0f0',hx+3,77,4,4);R('#6b4434',hx+10,79,4,7);
+    if(p.night){x.globalAlpha=.25;circ('#ffd27a',hx+5,79,4);x.globalAlpha=1}}
+  me(46,86);R('#ffffff',47,72+0,1,1);
+},
+city(p,t){
+  sky(p.sky[0],p.sky[1],92);twinkle(t);circ(p.moon,78,16,5);circ(mix(p.sky[0],p.sky[1],.15),80,15,4);
+  for(const [bx,w,h] of BL){R(p.bld,bx,92-h,w,h);for(let wy=92-h+3;wy<90;wy+=4)for(let wx=bx+1;wx<bx+w-1;wx+=3){const v=hh(wx,wy);if(v<.42||(v<.5&&Math.sin(t*.7+v*40)>0))R(p.win,wx,wy,1,2)}}
+  if(p.eiffel){const cx=72;for(let y=24;y<92;y++){const w=Math.round(1+((y-24)/68)**2*24);R('#e8b84a',cx-w/2,y,w,1);if(w>4)R(p.bld,cx-w/2+1,y,w-2,1);if(y>80){const hw=Math.round((y-80)*1.4);R(mix(p.sky[0],p.sky[1],.95),cx-hw/2,y,hw,1)}}R('#e8b84a',cx-5,50,11,1);R('#e8b84a',cx-8,68,17,1);R('#fff3c8',cx,22,1,2);
+    if(Math.floor(t)%6<2)for(let i=0;i<18;i++){const y=26+hh(i,Math.floor(t*6))*64,w=1+((y-24)/68)**2*24;R('#ffffff',cx-w/2+hh(i,3)*w,y,1,1)}}
+  if(p.water){
+    for(let X=0;X<W;X++){const y=84-Math.round(Math.sin(X/W*Math.PI)*12);if(X%3===0)R(p.lan[(X/3|0)%3],X,y,1,1)}
+    R('#4a4a6a',0,84,W,2);for(let X=0;X<W;X+=4)R(p.lan[((X/4|0)+Math.floor(t*2))%3],X,84,1,1);
+    R(p.water,0,92,W,28);
+    for(let k=0;k<16;k++){const X=(k*6+3)%W;for(let j=0;j<6;j++)if(Math.sin(t*3+k+j)>-.2){x.globalAlpha=.6;R(p.lan[k%3],X+Math.round(Math.sin(t*2+j+k)),94+j*4,2,1);x.globalAlpha=1}}
+    R('#5a4a5a',26,100,46,3);R('#3b2a3a',30,103,2,8);R('#3b2a3a',66,103,2,8);
+    me(46,90);
+  }else{
+    R('#3a2a2e',0,92,W,28);R('#4a3438',0,92,W,1);
+    for(let i=0;i<4;i++){const sx=3+i*24;for(let k=0;k<9;k++)R(k%2?p.lan[0]:'#fff4e3',sx+k*2,78,2,4);R('#6b4434',sx,86,18,6);x.globalAlpha=.4;R('#ffc078',sx,82,18,4);x.globalAlpha=1;R('#3b2a3a',sx,82,1,10);R('#3b2a3a',sx+17,82,1,10)}
+    for(let s=0;s<2;s++)for(let X=0;X<W;X++){const y=Math.round(22+s*14+8*(1-((X-48)/48)**2));R('#2a1a22',X,y,1,1);
+      if((X+s*5)%10===5){const sw=Math.round(Math.sin(t*1.5+X)*1);x.globalAlpha=.3;circ('#ffb070',X+sw,y+4,4);x.globalAlpha=1;R(p.lan[(X/10|0)%2],X-2+sw,y+1,5,5);R('#ffd27a',X+sw,y+2,1,3)}}
+    me(46,84);
+  }
+},
+temple(p,t){
+  sky(p.sky[0],p.sky[1],64);circ(p.sun,76,28,6);clouds(t,'#ffffff');
+  hills(p.hill,58,3,.08,1,.2);
+  if(p.mound)[[2,34],[30,58]].forEach(([a,b])=>{for(let X=a;X<b;X++){const h=Math.round(Math.sin((X-a)/(b-a)*Math.PI)*9);R('#7fa36b',X,72-h,1,h)}});
+  R('#7fa36b',0,70,W,20);
+  if(p.fg==='pagoda'){const c=58;R(p.bld,c-10,76,20,12);R('#3b2a3a',c-2,80,4,8);
+    for(let i=0;i<4;i++){const y=74-i*9,rw=30-i*5;R(p.roof,c-rw/2,y,rw,2);R(p.roof,c-rw/2-1,y-1,1,1);R(p.roof,c+rw/2,y-1,1,1);if(i<3){const bw=rw-12;R(p.bld,c-bw/2,y-7,bw,7)}}
+    R(p.roof,c-1,40,2,7);R('#e8b84a',c-1,38,2,2);
+  }else{
+    const roof=(cx,y,w)=>{for(let X=cx-w/2;X<=cx+w/2;X++){const e=Math.abs(X-cx)/(w/2);R(p.roof,X,y-Math.round(e**3*3),1,4)}};
+    [[32,66,40],[74,70,32]].forEach(([cx,y,w])=>{R(p.bld,cx-w/2+3,y+4,w-6,14);R('#8a5a4a',cx-w/2+3,y+4,w-6,1);for(let X=cx-w/2+4;X<cx+w/2-3;X+=7){R('#8a5a4a',X,y+4,1,14);R('#ffe9a0',X+2,y+8,3,5)}roof(cx,y,w)});
+  }
+  R('#6b4434',10,62,3,26);circ(p.tree,12,58,9);circ(p.tree,21,63,6);x.globalAlpha=.35;circ('#ffffff',9,55,3);x.globalAlpha=1;
+  R(p.ground,0,88,W,32);for(let y=90;y<120;y+=5)R('#efe4c8',42+((y/5)%2)*3,y,14,3);
+  me(50,82);
+},
+mountain(p,t){
+  sky(p.sky[0],p.sky[1],66);clouds(t,'#ffffff');
+  const px=((t*6)%150)-24,py=24+Math.sin(t*.8)*3;R('#e86f5a',px,py,8,1);R('#e86f5a',px-1,py+1,1,1);R('#e86f5a',px+8,py+1,1,1);R('#3b2a3a',px+1,py+2,1,3);R('#3b2a3a',px+6,py+2,1,3);R('#3b2a3a',px+3,py+5,2,2);
+  peaks(p.mtn,[[22,40,1.1],[52,52,.9],[82,38,1]],70,p.nocap?null:['#ffffff',20]);
+  hills('#5a9a5a',66,2,.12,1,.3);
+  for(let i=0;i<5;i++)R(mix(p.lake[0],p.lake[1],i/4),0,70+i*4,W,4);
+  for(let j=0;j<5;j++){const X=((j*23+t*(3+j))%(W+10))-5;x.globalAlpha=.5;R('#ffffff',X,72+j*4,4,1);x.globalAlpha=1}
+  R(p.grass,0,90,W,30);R('#6aa84a',0,100,W,2);
+  [[6,96,'#ffffff'],[20,108,'#e86f5a'],[33,99,'#f6d55c'],[64,112,'#ffffff'],[88,104,'#e86f5a'],[12,115,'#f6d55c']].forEach(f=>R(f[2],f[0],f[1],1,1));
+  if(p.rocks){[[30,6,12],[46,9,18],[62,6,10]].forEach(([c,w,h])=>{for(let i=0;i<h;i++){const ww=Math.round(w*(.55+.45*i/h));R('#6a6a5a',c-ww/2,86-h+i,ww,1)}R('#4f8a4e',c-1,86-h,3,1)});R('#c8402a',43,65,7,1);R('#c8402a',44,64,5,1);R('#3b2a3a',44,66,1,2);R('#3b2a3a',48,66,1,2)}
+  if(!p.nochalet){R('#c8946a',70,80,16,12);for(let i=0;i<5;i++)R('#7a3a2a',68+i*2,79-i,20-i*4,1);R('#ffe9a0',73,83,3,3);R('#e86f5a',71,88,14,1);R('#6b4434',80,85,3,7);}
+  me(40,88);
+}};
+
+/* ---------- 데이터 ---------- */
+const D=[
+{id:'jeju',n:'제주 협재',r:'제주',far:0,sc:'sea',tg:{sea:3,rest:2,warm:1,green:1},line:'에메랄드빛 바다와 까만 돌담이 반겨주는 섬',tip:'해 질 무렵 협재 해변에 앉아 비양도 너머로 지는 노을을 기다려 보세요.',p:{sky:['#7fc8e8','#ffe2b8'],sun:'#fff1c4',sea:['#3fc1c0','#1f7f9a'],sand:'#f3e3bf',island:'#3f7a6a',fg:'stone'},st:'#2aa6a0'},
+{id:'gangneung',n:'강릉',r:'강원',far:0,sc:'sea',tg:{sea:2,food:2,rest:1,city:1},line:'파도 소리 들으며 마시는 따뜻한 커피 한 잔',tip:'안목해변 커피거리에서 창가 자리를 잡고 바다를 멍하니 바라보세요.',p:{sky:['#9fd3f0','#eaf6ff'],sun:'#fffbe6',sea:['#5aa9d6','#2d5f9a'],sand:'#efe0c0',fg:'cafe'},st:'#4a7fc0'},
+{id:'gyeongju',n:'경주',r:'경북',far:0,sc:'temple',tg:{old:3,rest:2,green:1},line:'천 년 고도에서 보내는 느릿한 하루',tip:'자전거를 빌려 대릉원 주변을 천천히 달려 보세요. 동궁과 월지는 해 진 직후가 가장 예뻐요.',p:{sky:['#f6a6a0','#ffe3c2'],sun:'#fff0c8',hill:'#9b8aa8',bld:'#8a5a4a',roof:'#3e3640',tree:'#f7b8c8',ground:'#c9b48a',fg:'pagoda',mound:1},st:'#c8574d'},
+{id:'jeonju',n:'전주',r:'전북',far:0,sc:'temple',tg:{food:3,old:2,city:1},line:'한옥 지붕 아래서 맛보는 든든한 한 상',tip:'한옥마을은 아침 일찍 가면 한적해요. 따끈한 콩나물국밥으로 하루를 시작해 보세요.',p:{sky:['#a8d8f0','#fff3d6'],sun:'#fffbe6',hill:'#8fb48a',bld:'#f1e4cc',roof:'#4a4650',tree:'#f2b040',ground:'#d8c6a0',fg:'hanok'},st:'#d8902a'},
+{id:'yeosu',n:'여수',r:'전남',far:0,sc:'city',tg:{sea:2,city:2,food:1,rest:1},line:'불빛이 일렁이는 낭만의 밤바다',tip:'해상케이블카로 밤바다를 내려다본 뒤, 바닷가를 따라 천천히 걸어 보세요.',p:{sky:['#1e2148','#5a4a8a'],moon:'#fff4c8',bld:'#2a2a4a',win:'#ffd27a',water:'#1c2c5a',lan:['#ff8a7a','#ffd27a','#8ad6ff']},st:'#5a4a9a'},
+{id:'damyang',n:'담양',r:'전남',far:0,sc:'forest',tg:{green:3,rest:3},line:'바람이 지날 때마다 사각사각, 대숲의 노래',tip:'죽녹원은 오전에 가면 선선하고 한적해요. 메타세쿼이아길도 함께 걸어 보세요.',p:{sky:['#cfeedd','#f6fff0'],fg:'bamboo',ground:'#d9c9a0',leaf:'#9ccf6a'},st:'#4f8a3e'},
+{id:'pyeongchang',n:'평창',r:'강원',far:0,sc:'snow',tg:{snow:3,green:1,rest:2},line:'하얀 고원 위를 걷는 고요한 겨울 산책',tip:'대관령 쪽은 겨울이면 온통 설원이에요. 바람이 세니 따뜻하게 껴입으세요.',p:{sky:['#9cc4e8','#e8f2ff'],mtn:'#c9d8ee',houses:[[14,'#c8574d'],[62,'#4f8a6b']]},st:'#5a8fc8'},
+{id:'busan',n:'부산 흰여울마을',r:'부산',far:0,sc:'sea',tg:{sea:2,city:1,food:2,old:1},line:'바다 바로 옆, 골목골목 하얀 마을',tip:'흰여울문화마을 골목을 걷다 바다가 보이는 카페에 들러 보세요. 영도의 노을이 근사해요.',p:{sky:['#f7b79a','#ffe9c8'],sun:'#fff0c8',sea:['#4f8fc8','#2a4f8a'],sand:'#e8d6c0',fg:'lighthouse'},st:'#e0704a'},
+{id:'ulleung',n:'울릉도',r:'경북',far:0,sc:'sea',tg:{sea:3,green:2,rest:2},line:'깎아지른 절벽과 쪽빛 바다가 반기는 신비한 섬',tip:'배는 날씨에 따라 자주 결항돼요. 일정을 넉넉히 잡고 출발 전 운항 여부를 꼭 확인하세요.',p:{sky:['#7fb8e8','#e6f4ff'],sun:'#fffbe6',sea:['#1f8ab8','#0f4f7a'],sand:'#b8b0a8',fg:'cliff'},st:'#1f6a9a'},
+{id:'kyoto',n:'교토',r:'일본',far:1,sc:'temple',tg:{old:3,rest:2,green:1},line:'이끼 정원과 오래된 절, 조용한 골목',tip:'유명한 절은 문 여는 시간에 맞춰 가면 훨씬 조용해요. 가모강 산책도 추천해요.',p:{sky:['#f7c6d0','#fff0e6'],sun:'#fff6e0',hill:'#8a9ab8',bld:'#b0463c',roof:'#3a3036',tree:'#f7b8c8',ground:'#c9bfa8',fg:'pagoda'},st:'#b0463c'},
+{id:'sapporo',n:'삿포로',r:'일본',far:1,sc:'snow',tg:{snow:3,food:2,city:1},line:'뽀드득 눈길 끝, 김이 모락모락 따끈한 한 그릇',tip:'겨울엔 눈이 많이 와요. 미끄럼 방지 신발을 챙기고 수프카레도 꼭 맛보세요.',p:{sky:['#2a3a6a','#7a8ac0'],mtn:'#b8c6e6',night:1,houses:[[8,'#8a5a4a'],[40,'#c8574d'],[72,'#4a6a8a']]},st:'#4a6a9a'},
+{id:'chiangmai',n:'치앙마이',r:'태국',far:1,sc:'forest',tg:{green:2,rest:3,warm:2,food:1,old:1},line:'초록 숲과 황금빛 사원 사이의 느긋한 시간',tip:'올드타운 사원들을 걸어서 둘러보고, 저녁엔 야시장에서 가볍게 한 끼 해 보세요.',p:{sky:['#ffd29a','#fff4d6'],fg:'jungle',ground:'#d8b88a',leaf:'#f2a65a',gold:'#e8b84a'},st:'#d8902a'},
+{id:'danang',n:'다낭',r:'베트남',far:1,sc:'sea',tg:{sea:3,warm:3,food:1,rest:1},line:'햇살 쨍한 바다에서 아무 생각 없이 쉬기',tip:'한낮은 꽤 뜨거워요. 이른 아침이나 해 질 녘 해변 산책이 가장 기분 좋아요.',p:{sky:['#5ac0f0','#d6f4ff'],sun:'#fffbe0',sea:['#2ab8d8','#147aa8'],sand:'#f7e6b8',fg:'palm'},st:'#2a8ac8'},
+{id:'taipei',n:'타이베이',r:'대만',far:1,sc:'city',tg:{city:3,food:3},line:'홍등 아래 야시장, 골목마다 맛있는 냄새',tip:'야시장엔 배를 비우고 가세요. 근교 지우펀의 홍등 골목도 함께 들러 보면 좋아요.',p:{sky:['#2a1a3a','#8a3a4a'],moon:'#ffe6b0',bld:'#3a2436',win:'#ffb86a',lan:['#ff5a4a','#ff7a4a']},st:'#c8402a'},
+{id:'interlaken',n:'인터라켄',r:'스위스',far:1,sc:'mountain',tg:{green:3,snow:1,rest:2},line:'만년설 봉우리와 에메랄드 호수 사이',tip:'맑은 날 산악열차를 타 보세요. 산 위는 여름에도 쌀쌀하니 겉옷을 챙기세요.',p:{sky:['#6ab8f0','#e0f4ff'],mtn:'#6a7a9a',lake:['#3ac0b8','#1f8a9a'],grass:'#7cc05a'},st:'#2a9a5a'},
+{id:'rovaniemi',n:'로바니에미',r:'핀란드',far:1,sc:'snow',tg:{snow:3,rest:3},line:'초록빛 오로라가 춤추는 고요한 북쪽 하늘',tip:'오로라는 맑고 어두운 밤에 잘 보여요. 운이 따라야 하니 며칠 여유 있게 머물러 보세요.',p:{sky:['#0e1430','#2a3a6a'],mtn:'#3a4a7a',night:1,aurora:1,houses:[[30,'#8a5a4a']]},st:'#2aa878'}];
+const TW={sea:'바다',green:'초록',snow:'눈',city:'도시의 밤',old:'옛 정취',food:'먹거리',rest:'쉼',warm:'따뜻함'};
+const Q=[
+{q:'지금 가장 듣고 싶은 소리는 뭐예요?',o:[['철썩철썩 파도 소리',{sea:2,rest:1},'wave'],['사각사각 나뭇잎 소리',{green:2,rest:1},'leaves'],['북적북적 골목 소리',{city:2,food:1},'crowd'],['뽀드득 눈 밟는 소리',{snow:2},'snow']]},
+{q:'여행 가방에 딱 하나만 넣는다면?',o:[['선글라스',{warm:2,sea:1},'sparkle'],['필름 카메라',{old:2,city:1},'shutter'],['편한 운동화',{green:2,old:1},'steps'],['두툼한 목도리',{snow:2,food:1},'fluff']]},
+{q:'이번 여행에서 제일 기대되는 건?',o:[['맛있는 한 끼',{food:3},'sizzle'],['아무것도 안 하기',{rest:3},'sigh'],['옛 골목 산책',{old:2,city:1},'temple'],['탁 트인 풍경',{green:1,sea:1,snow:1},'breeze']]},
+{q:'오늘 밤 창밖으로 보고 싶은 빛은?',o:[['붉은 노을빛',{sea:1,warm:1,old:1},'harp'],['쏟아지는 별빛',{rest:1,snow:1,green:1},'twinkle'],['반짝이는 도시 불빛',{city:2,food:1},'neon'],['따스한 등불빛',{old:2,rest:1},'fire']]},
+{q:'마지막 질문! 무엇을 타고 떠나 볼까요?',o:[['칙칙폭폭 기차',{},'train','train'],['느긋한 고속버스',{},'bus','bus'],['슝— 비행기',{},'plane','plane'],['뿌우— 여객선',{},'horn','ship'],['아무거나 좋아요',{},'chime','any']]}];
+
+/* 코스·지도·짤 데이터: [이름, 한 줄, 경도, 위도, 시간대] */
+const EX={
+jeju:{ll:[126.24,33.39],addr:'제주시 한림읍',q:'제주 돌하르방',cap:'제주를 지키는 돌하르방. 표정은 무뚝뚝해도 사진은 잘 받아요.',
+ c:[['새별오름','억새 능선 따라 오름 산책',126.357,33.366,'오전'],['협재해변','에메랄드 바다 보며 물멍',126.239,33.394,'낮'],['애월 한담해안산책로','바닷길 걸으며 노을 감상',126.31,33.463,'해 질 녘'],['동문재래시장','야시장 먹거리로 마무리',126.526,33.512,'밤']]},
+gangneung:{ll:[128.9,37.75],addr:'강원 강릉시',q:'강릉 초당순두부',cap:'아침엔 초당순두부, 오후엔 안목 커피. 이게 강릉 국룰 코스.',
+ c:[['오죽헌','검은 대나무 숲과 고택',128.879,37.779,'오전'],['초당순두부마을','뽀얀 순두부로 점심',128.917,37.791,'점심'],['경포호','호수 한 바퀴 자전거',128.903,37.797,'오후'],['안목해변 커피거리','바다 보며 커피 한 잔',128.947,37.772,'해 질 녘']]},
+gyeongju:{ll:[129.21,35.84],addr:'경북 경주시',q:'경주 첨성대 야경',cap:'1300년 넘게 그 자리 그대로. 첨성대는 오늘도 별 보는 중.',
+ c:[['불국사','아침 햇살 속 석가탑·다보탑',129.332,35.790,'오전'],['대릉원','거대한 고분 사이 산책',129.211,35.839,'낮'],['첨성대','꽃밭 사이 인증샷',129.219,35.835,'오후'],['동궁과 월지','연못에 비친 야경',129.227,35.835,'밤']]},
+jeonju:{ll:[127.15,35.82],addr:'전북 전주시',q:'전주 비빔밥',cap:'전주에 왔으면 비빔밥은 필수. 쓱쓱 비비는 소리까지 맛있어요.',
+ c:[['경기전','대나무 숲 고즈넉한 산책',127.150,35.815,'오전'],['자만벽화마을','알록달록 벽화 골목',127.159,35.817,'낮'],['덕진공원','연꽃 호수 한 바퀴',127.122,35.848,'오후'],['남부시장 야시장','청년몰과 야시장 먹방',127.145,35.818,'밤']]},
+yeosu:{ll:[127.66,34.76],addr:'전남 여수시',q:'여수 밤바다 돌산대교 야경',cap:'‘여수 밤바다’ 노래가 절로 흥얼거려지는 바로 그 바다.',
+ c:[['향일암','바다 절벽 위 암자에서 일출',127.80,34.59,'새벽'],['오동도','동백꽃 숲길 산책',127.766,34.744,'오전'],['이순신광장','게장 백반으로 든든하게',127.734,34.739,'점심'],['여수해상케이블카','바다 위에서 보는 야경',127.733,34.729,'밤']]},
+damyang:{ll:[126.99,35.32],addr:'전남 담양군',q:'담양 죽녹원 대나무숲',cap:'대숲에서 사각사각 산책하고, 대나무 통에 지은 대통밥 한 그릇.',
+ c:[['죽녹원','대숲 바람 소리 산책',126.985,35.326,'오전'],['국수거리','멸치국수 한 그릇',126.989,35.322,'점심'],['메타세쿼이아길','키 큰 나무 터널 걷기',127.004,35.331,'오후'],['소쇄원','옛 선비의 정원에서 쉬기',127.016,35.184,'늦은 오후']]},
+pyeongchang:{ll:[128.5,37.6],addr:'강원 평창군',q:'대관령 양떼목장',cap:'대관령 양들 왈: 사실 사람 구경하러 나온 건 우리예요.',
+ c:[['대관령 양떼목장','하얀 초원과 양떼',128.730,37.687,'오전'],['발왕산 케이블카','산 정상 설경 감상',128.680,37.645,'낮'],['월정사 전나무숲길','하늘로 뻗은 전나무 숲',128.594,37.732,'오후'],['봉평 메밀마을','메밀국수와 메밀전병',128.364,37.617,'저녁']]},
+busan:{ll:[129.05,35.08],addr:'부산 영도구',q:'흰여울문화마을',cap:'바다를 끼고 하얀 집들이 층층이. 골목 계단마다 인생샷 명당.',
+ c:[['자갈치시장','싱싱한 해산물로 점심',129.031,35.097,'점심'],['흰여울문화마을','바다 옆 하얀 골목',129.044,35.078,'오후'],['절영해안산책로','파도 소리 들으며 걷기',129.050,35.072,'늦은 오후'],['태종대','절벽 위에서 노을',129.083,35.053,'해 질 녘']]},
+ulleung:{ll:[130.87,37.5],addr:'경북 울릉군',q:'울릉도 촛대바위',cap:'울릉도 명물 오징어들이 줄 맞춰 일광욕 중. 바닷바람에 꾸덕꾸덕.',
+ c:[['도동항','배에서 내려 섬과 첫인사',130.906,37.484,'오전'],['행남해안산책로','절벽 따라 바닷길 산책',130.913,37.478,'낮'],['나리분지','섬 속 고요한 분지 마을',130.866,37.520,'오후'],['저동항 촛대바위','오징어배 불빛 야경',130.913,37.498,'저녁']]},
+kyoto:{ll:[135.77,35.01],addr:'일본 교토부',q:'후시미 이나리 센본도리이',cap:'걸어도 걸어도 또 도리이. 후시미 이나리의 끝없는 주홍빛 터널.',
+ c:[['후시미 이나리 신사','한적한 아침 도리이 터널',135.773,34.967,'아침'],['기요미즈데라','나무 무대 위 전망',135.785,34.995,'오전'],['아라시야마 대나무숲','대나무 길 산책',135.672,35.017,'오후'],['기온·가모강','강변 따라 저녁 산책',135.775,35.004,'저녁']]},
+sapporo:{ll:[141.35,43.06],addr:'일본 홋카이도',q:'삿포로 미소라멘',cap:'영하의 겨울엔 버터 올린 미소라멘 한 그릇이 정답.',
+ c:[['니조시장','해산물 덮밥으로 아침',141.358,43.058,'아침'],['오도리공원','눈 쌓인 공원과 TV타워',141.350,43.060,'오전'],['오타루 운하','운하 따라 오르골 가게 구경',141.000,43.198,'오후'],['스스키노','미소라멘으로 마무리',141.353,43.055,'밤']]},
+chiangmai:{ll:[98.99,18.79],addr:'태국 북부',q:'치앙마이 코끼리 보호구역',cap:'코끼리는 타는 대신 보호구역에서 만나요. 진흙 목욕 구경이 꿀잼.',
+ c:[['왓 프라탓 도이수텝','산 위 황금 사원과 시내 전망',98.922,18.805,'오전'],['님만해민','감성 카페 투어',98.967,18.799,'낮'],['왓 체디 루앙','거대한 옛 불탑',98.987,18.787,'오후'],['타패 게이트','야시장 구경',98.993,18.788,'밤']]},
+danang:{ll:[108.22,16.05],addr:'베트남 중부',q:'다낭 용다리 불쇼',cap:'주말 밤엔 용다리가 진짜로 불을 뿜어요. 명당은 일찍 잡기!',
+ c:[['미케비치','아침 해변 산책',108.249,16.060,'아침'],['한시장','과일·커피 쇼핑',108.224,16.068,'낮'],['호이안 올드타운','등불 켜진 옛 거리',108.328,15.877,'저녁'],['용다리','주말 밤 불쇼 구경',108.227,16.061,'밤']]},
+taipei:{ll:[121.56,25.03],addr:'대만 북부',q:'타이베이 101 야경',cap:'버블티 한 손에 들고 101 올려다보기. 타이베이 인증샷 국룰.',
+ c:[['융캉제','우육면과 망고빙수',121.530,25.033,'점심'],['타이베이 101','전망대에서 시내 한눈에',121.565,25.034,'오후'],['지우펀','홍등 골목 찻집',121.844,25.109,'저녁'],['스린 야시장','길거리 간식 투어',121.524,25.088,'밤']]},
+interlaken:{ll:[7.86,46.69],addr:'스위스 베른주',q:'융프라우 산악열차',cap:'창밖이 그대로 엽서. 빨간 산악열차 타고 만년설 앞까지.',
+ c:[['융프라우요흐','만년설 전망대',7.985,46.547,'오전'],['회에마테 공원','패러글라이더 착륙 구경',7.855,46.686,'오후'],['브리엔츠 호수','에메랄드 호수 유람선',7.950,46.730,'늦은 오후'],['하더쿨름','두 호수 사이 노을',7.860,46.697,'해 질 녘']]},
+rovaniemi:{ll:[25.73,66.5],addr:'핀란드 라플란드',q:'로바니에미 순록 산타마을',cap:'북극권에선 순록이 길 비켜주길 기다리는 게 일상이에요.',
+ c:[['아르크티쿰','북극 자연과 오로라 전시',25.722,66.507,'오전'],['산타클로스 마을','북극선 넘기 인증',25.847,66.543,'낮'],['오우나스바라 언덕','썰매 타고 설경 감상',25.770,66.500,'오후'],['교외 오로라 사냥','불빛 없는 곳에서 하늘 보기',25.900,66.600,'밤']]}};
+/* ---------- 추가 여행지 14곳 ---------- */
+D.push(
+{id:'sokcho',n:'속초',r:'강원',far:0,sc:'sea',tg:{sea:2,food:2,green:1,city:1},line:'설악산과 동해 바다를 한 번에 품은 항구 도시',tip:'설악산 케이블카는 주말에 대기가 길어요. 오전 일찍 가는 걸 추천해요.',p:{sky:['#8fc8f0','#e8f6ff'],sun:'#fffbe6',sea:['#3a8ac8','#1f4f8a'],sand:'#e8dcc0',back:'peaks',fg:'boat'},st:'#3a7ac0'},
+{id:'tongyeong',n:'통영',r:'경남',far:0,sc:'sea',tg:{sea:3,food:2,old:1},line:'크고 작은 섬들이 떠 있는 남해의 보석',tip:'케이블카로 미륵산에 오르면 한려수도 섬들이 한눈에 보여요. 맑은 날 가세요.',p:{sky:['#a8d8f0','#fff0d6'],sun:'#fff3c8',sea:['#3fa8c8','#1f6a9a'],sand:'#e8d6b8',isles:[[2,20,4],[26,40,3],[70,94,5]],island:'#4f7a6a',fg:'boat'},st:'#2a8aa8'},
+{id:'andong',n:'안동 하회마을',r:'경북',far:0,sc:'temple',tg:{old:3,rest:2,food:1},line:'강이 휘감아 도는 600년 전통 마을',tip:'하회마을은 아침 일찍 가면 한적해요. 저녁엔 안동찜닭 한 접시!',p:{sky:['#f2c79a','#fff1dc'],sun:'#fff0c8',hill:'#a89a7a',bld:'#efe2c8',roof:'#4a4650',tree:'#e8843a',ground:'#d8c6a0',fg:'hanok'},st:'#a8643a'},
+{id:'nami',n:'남이섬',r:'강원',far:0,sc:'forest',tg:{green:3,rest:2,old:1},line:'키 큰 나무 터널 사이로 걷는 동화 같은 섬',tip:'단풍철엔 사람이 많아요. 아침 첫 배를 타면 여유롭게 걸을 수 있어요.',p:{sky:['#bfe0f0','#fff4e0'],fg:'meta',ground:'#d9c9a0',leaf:'#e8843a'},st:'#c8643a'},
+{id:'boseong',n:'보성 녹차밭',r:'전남',far:0,sc:'forest',tg:{green:3,rest:3},line:'초록 물결 출렁이는 계단식 녹차밭',tip:'녹차밭 위쪽 전망대까지 올라가 보세요. 녹차 아이스크림도 꼭!',p:{sky:['#cfe8f0','#f6fff0'],fg:'tea',ground:'#c8b890',leaf:'#9ccf6a'},st:'#3f8a3e'},
+{id:'danyang',n:'단양',r:'충북',far:0,sc:'mountain',tg:{green:3,rest:1,old:1},line:'강 위에 뜬 세 봉우리와 하늘을 나는 패러글라이더',tip:'패러글라이딩은 날씨 영향을 많이 받아요. 예약 전에 바람과 날씨를 꼭 확인하세요.',p:{sky:['#8fc8f0','#eaf6ff'],mtn:'#6a8a6a',lake:['#4aa8b8','#2a7a8a'],grass:'#8cc06a',nocap:1,rocks:1,nochalet:1},st:'#4a8a6a'},
+{id:'suncheon',n:'순천만',r:'전남',far:0,sc:'forest',tg:{green:2,rest:3,sea:1},line:'황금빛 갈대 사이로 해가 지는 습지',tip:'용산전망대까지는 꽤 걸어야 해요. 해 지는 시간에 맞춰 넉넉히 출발하세요.',p:{sky:['#f7a07a','#ffe0b0'],fg:'reed',ground:'#b08a5a',leaf:'#f0d898'},st:'#d8a040'},
+{id:'fukuoka',n:'후쿠오카',r:'일본',far:1,sc:'city',tg:{food:3,city:2,rest:1},line:'강변 포장마차 불빛 아래 라멘 한 그릇',tip:'부산에서 배로도 갈 수 있어요. 강변 포장마차(야타이)는 저녁부터 문을 열어요.',p:{sky:['#1e1e40','#6a3a5a'],moon:'#ffe6b0',bld:'#2a2440',win:'#ffc878',water:'#1a2a48',lan:['#ff6a4a','#ffd27a','#ff9a5a']},st:'#d8503a'},
+{id:'okinawa',n:'오키나와',r:'일본',far:1,sc:'sea',tg:{sea:3,warm:3,rest:2},line:'에메랄드빛 바다와 느긋한 남국의 시간',tip:'렌터카로 해안 도로를 달려 보세요. 국제운전면허증을 꼭 챙기세요.',p:{sky:['#4ab8f0','#d6f6ff'],sun:'#fffbe0',sea:['#3ad0d0','#1a8ab8'],sand:'#fff0d0',fg:'palm'},st:'#1aa8b8'},
+{id:'hongkong',n:'홍콩',r:'중국',far:1,sc:'city',tg:{city:3,food:3},line:'바다 건너 반짝이는 빌딩 숲, 백만 불짜리 야경',tip:'스타페리는 저렴하고 낭만적이에요. 해 질 무렵 타면 야경이 켜지는 순간을 볼 수 있어요.',p:{sky:['#141a3a','#4a3a7a'],moon:'#fff0c8',bld:'#1e2240',win:'#9ad8ff',water:'#121e40',lan:['#ff6aa8','#6ae8ff','#ffd27a']},st:'#c8306a'},
+{id:'halong',n:'하롱베이',r:'베트남',far:1,sc:'sea',tg:{sea:3,green:2,rest:2},line:'에메랄드 바다 위로 솟은 수천 개의 바위섬',tip:'1박 크루즈로 바다 위에서 자 보세요. 안개 낀 아침 풍경이 정말 신비로워요.',p:{sky:['#bcd8e8','#f0f6f0'],sun:'#fffbe6',sea:['#4ab0a0','#2a7a7a'],sand:'#d8d0b8',fg:'karst'},st:'#2a8a7a'},
+{id:'bali',n:'발리',r:'인도네시아',far:1,sc:'forest',tg:{green:3,warm:3,rest:2,old:1},line:'계단식 논과 정글 속 사원, 신들의 섬',tip:'우붓은 오전에 둘러보고 오후엔 스파로 쉬어 가세요. 사원에선 사롱을 둘러야 해요.',p:{sky:['#ffd8a0','#fff6dc'],fg:'terrace',ground:'#c8a878',leaf:'#7cc05a'},st:'#4a9a3a'},
+{id:'paris',n:'파리',r:'프랑스',far:1,sc:'city',tg:{old:2,food:2,city:3},line:'센강 따라 걷다 만나는 반짝이는 에펠탑',tip:'밤에는 정각마다 에펠탑이 몇 분간 반짝여요. 박물관은 미리 예약하면 줄을 덜 서요.',p:{sky:['#1a2048','#5a4a8a'],moon:'#fff4d6',bld:'#2e2a48',win:'#ffd8a0',water:'#1a2a50',lan:['#ffd27a','#fff3c8','#ffb86a'],eiffel:1},st:'#3a4a9a'},
+{id:'santorini',n:'산토리니',r:'그리스',far:1,sc:'sea',tg:{sea:3,warm:2,rest:2},line:'파란 지붕과 하얀 집, 에게해 위로 지는 노을',tip:'이아 마을 노을 명당은 일찍 차요. 해 지기 한 시간 전엔 도착하세요.',p:{sky:['#f79a7a','#ffe0b8'],sun:'#fff0c8',sea:['#2a6ac8','#1a3a8a'],sand:'#d8b8a0',fg:'santorini'},st:'#2a5ab8'});
+Object.assign(EX,{
+sokcho:{ll:[128.59,38.2],addr:'강원 속초시',q:'속초 아바이마을 갯배',cap:'줄을 직접 잡아당겨 건너는 갯배. 속초에서만 하는 귀여운 체험!',
+ c:[['설악산 케이블카','케이블카 타고 설악 절경',128.488,38.172,'오전'],['속초관광수산시장','닭강정과 오징어순대',128.590,38.204,'점심'],['아바이마을 갯배','줄 당겨 건너는 작은 배',128.597,38.199,'오후'],['영금정','파도 부서지는 바위 위 정자',128.600,38.213,'해 질 녘']]},
+tongyeong:{ll:[128.43,34.85],addr:'경남 통영시',q:'통영 충무김밥',cap:'손가락만 한 충무김밥에 오징어무침 한 입. 통영의 맛.',
+ c:[['동피랑 벽화마을','언덕 위 알록달록 벽화',128.427,34.846,'오전'],['중앙시장','싱싱한 회와 꿀빵',128.422,34.843,'점심'],['통영 케이블카','미륵산에서 섬 풍경 한눈에',128.413,34.826,'오후'],['달아공원','다도해 노을 명소',128.389,34.804,'해 질 녘']]},
+andong:{ll:[128.52,36.54],addr:'경북 안동시',q:'안동 하회탈',cap:'하회탈처럼 활짝 웃게 되는 마을. 표정 따라 하기 챌린지!',
+ c:[['하회마을','초가와 기와집 골목 산책',128.518,36.539,'오전'],['부용대','절벽 위에서 마을 전경',128.524,36.545,'낮'],['병산서원','강을 마주한 옛 서원',128.553,36.540,'오후'],['안동 구시장','원조 안동찜닭으로 저녁',128.729,36.566,'저녁']]},
+nami:{ll:[127.53,37.79],addr:'강원 춘천시',q:'남이섬 메타세쿼이아길',cap:'남이섬 메타세쿼이아길. 걷기만 해도 드라마 주인공이 돼요.',
+ c:[['가평 선착장','짧은 배를 타고 섬으로',127.516,37.815,'오전'],['메타세쿼이아길','키 큰 나무 터널 산책',127.525,37.791,'낮'],['강변 자전거길','강 따라 자전거',127.531,37.786,'오후'],['춘천 닭갈비골목','철판 닭갈비로 저녁',127.728,37.879,'저녁']]},
+boseong:{ll:[127.08,34.71],addr:'전남 보성군',q:'보성 녹차밭',cap:'끝없이 이어지는 초록 물결. 녹차 한 잔에 마음까지 맑아져요.',
+ c:[['대한다원 녹차밭','초록 계단 사이 산책',127.085,34.718,'오전'],['득량역 추억의 거리','옛날 기차역 감성 골목',127.150,34.758,'낮'],['율포솔밭해변','소나무 아래 바다 멍',127.087,34.667,'오후'],['벌교 꼬막정식','쫄깃한 꼬막으로 저녁',127.343,34.844,'저녁']]},
+danyang:{ll:[128.37,36.98],addr:'충북 단양군',q:'단양 도담삼봉',cap:'강 위에 둥실 세 봉우리, 하늘엔 알록달록 패러글라이더.',
+ c:[['도담삼봉','강 위에 뜬 세 봉우리',128.344,37.003,'오전'],['만천하스카이워크','아찔한 강 위 전망대',128.349,36.989,'낮'],['양방산 패러글라이딩','하늘에서 보는 단양',128.357,36.977,'오후'],['단양구경시장','마늘 요리로 저녁',128.366,36.985,'저녁']]},
+suncheon:{ll:[127.49,34.88],addr:'전남 순천시',q:'순천만 갈대밭 일몰',cap:'황금빛 갈대 사이로 지는 해. 순천만의 마법 같은 저녁.',
+ c:[['순천만국가정원','세계 여러 나라 정원 산책',127.508,34.928,'오전'],['낙안읍성','초가집 옛 마을',127.343,34.907,'낮'],['순천만습지','갈대숲 데크길',127.509,34.886,'오후'],['용산전망대','S자 물길 위 일몰',127.510,34.864,'해 질 녘']]},
+fukuoka:{ll:[130.40,33.59],addr:'일본 후쿠오카현',q:'후쿠오카 나카스 야타이',cap:'강변 포장마차에서 후루룩, 진한 돈코츠 라멘 한 그릇.',
+ c:[['다자이후 텐만구','학문의 신 신사와 매화떡',130.535,33.521,'오전'],['캐널시티 하카타','쇼핑과 분수쇼',130.411,33.590,'낮'],['오호리 공원','호수 둘레 산책',130.376,33.586,'오후'],['나카스 야타이','강변 포장마차에서 라멘',130.405,33.593,'밤']]},
+okinawa:{ll:[127.68,26.21],addr:'일본 오키나와현',q:'오키나와 시사',cap:'지붕 위 시사가 지켜주는 남국의 섬. 입 벌린 쪽이 수컷이래요.',
+ c:[['슈리성 공원','복원 중인 왕궁과 성곽 산책',127.719,26.217,'오전'],['국제거리','기념품과 오키나와 소바',127.684,26.215,'점심'],['추라우미 수족관','거대한 고래상어 수조',127.878,26.694,'오후'],['만좌모','코끼리 코 절벽 노을',127.851,26.505,'해 질 녘']]},
+hongkong:{ll:[114.17,22.30],addr:'홍콩',q:'홍콩 딤섬',cap:'대나무 찜기 뚜껑을 열면 김이 모락. 딤섬 천국 홍콩.',
+ c:[['빅토리아 피크','트램 타고 전망대',114.149,22.271,'오전'],['센트럴 소호','언덕길 골목 카페',114.153,22.283,'낮'],['스타페리','바다 건너는 작은 배',114.169,22.294,'오후'],['침사추이 산책로','바다 건너 야경 감상',114.172,22.293,'밤']]},
+halong:{ll:[107.08,20.95],addr:'베트남 북부',q:'하롱베이 크루즈',cap:'바다 위에 솟은 바위섬 사이를 배로 둥실둥실 유람.',
+ c:[['크루즈 선착장','크루즈 타고 출발',107.000,20.930,'오전'],['승솟 동굴','거대한 종유석 동굴',107.085,20.856,'낮'],['띠톱섬','전망대에서 바위섬 한눈에',107.017,20.858,'오후'],['카약 체험','바위섬 사이 노 젓기',107.050,20.880,'늦은 오후']]},
+bali:{ll:[115.26,-8.51],addr:'인도네시아 발리',q:'발리 그네 뜨갈랄랑',cap:'정글 위 그네 타고 인생샷. 발리 여행 국룰.',
+ c:[['뜨갈랄랑 계단식 논','정글 그네와 초록 논',115.279,-8.432,'오전'],['우붓 시장','공예품 시장 구경',115.263,-8.507,'낮'],['몽키 포레스트','원숭이 숲 산책',115.259,-8.519,'오후'],['울루와뚜 사원','절벽 위 사원의 노을',115.084,-8.829,'해 질 녘']]},
+paris:{ll:[2.35,48.86],addr:'프랑스 파리',q:'파리 에펠탑 크루아상',cap:'에펠탑 보며 크루아상 한 입. 이게 바로 파리지.',
+ c:[['루브르 박물관','유리 피라미드와 명화',2.338,48.861,'오전'],['마레 지구','골목 빵집과 카페',2.362,48.857,'점심'],['몽마르트르','언덕 위 화가 광장',2.343,48.886,'오후'],['에펠탑과 센강','반짝이는 에펠탑 야경',2.294,48.858,'밤']]},
+santorini:{ll:[25.43,36.42],addr:'그리스 산토리니',q:'산토리니 이아 마을 노을',cap:'파란 지붕 하얀 집. 이아 마을 노을은 다 같이 박수 치며 봐요.',
+ c:[['피라 마을','절벽 위 하얀 골목',25.432,36.417,'오전'],['이메로비글리','칼데라 전망 산책',25.423,36.433,'낮'],['레드비치','붉은 절벽 해변',25.395,36.349,'오후'],['이아 마을','노을 명당에서 박수',25.376,36.461,'해 질 녘']]}});
+
+D.forEach(d=>Object.assign(d,EX[d.id]));
+
+/* ---------- 입자 ---------- */
+let parts=[],pk='',pc='#fff';
+function seedParts(k,c,n,y0,y1){pk=k;pc=c;parts=Array.from({length:n},()=>({x:Math.random()*W,y:y0+Math.random()*(y1-y0),v:.5+Math.random(),p:Math.random()*6}))}
+function kindOf(d){const p=d.p;return{sea:['spark','#ffffff',12,61,94],forest:['leaf',p.leaf,12,0,110],snow:['snow','#ffffff',40,0,120],city:p.water?['spark',p.win,6,93,118]:['spark','#ffd27a',0,0,1],temple:['petal',p.tree,14,0,110],mountain:['spark','#ffffff',8,71,89]}[d.sc]}
+function drawParts(t,dt){for(const q of parts){
+  if(pk==='spark'){if(Math.sin(t*3+q.p*5)>.6)R(pc,q.x,q.y,1,1);continue}
+  if(pk==='fly'){x.globalAlpha=.4+.6*Math.max(0,Math.sin(t*2+q.p));R(pc,q.x+Math.sin(t*.6+q.p)*4,q.y+Math.cos(t*.5+q.p)*3,1,1);x.globalAlpha=1;continue}
+  const sn=pk==='snow';q.y+=q.v*dt*(sn?9:6);q.x+=Math.sin(t*1.5+q.p)*dt*(sn?3:8)+(sn?0:dt*3);
+  if(q.y>H){q.y=-2;q.x=Math.random()*W}if(q.x>W)q.x-=W;
+  if(sn)R(pc,q.x,q.y,q.v>1.2?2:1,1);else{const f=Math.sin(t*4+q.p)>0;R(pc,q.x,q.y,f?2:1,f?1:2)}}}
+
+/* ---------- 소리: 잔잔한 앰비언트 + 선택별 효과음 ---------- */
+const AU={ac:null,on:true,beat:0,next:0,mood:'station',amb:null};
+const mtof=m=>440*2**((m-69)/12);
+const MAJ=[0,2,4,7,9],MIN=[0,3,5,7,10];
+const MOODS={
+ station:{root:53,sc:MAJ,dens:.32,prog:[[0,4,7,11],[9,12,16,19],[5,9,12,16],[7,11,14,17]]},
+ sea:{root:50,sc:MAJ,dens:.38,prog:[[0,4,7,11],[5,9,12,16],[9,12,16,19],[7,11,14,19]]},
+ day:{root:55,sc:MAJ,dens:.3,prog:[[0,4,7,14],[5,9,12,16],[9,12,16,19],[5,9,12,14]]},
+ night:{root:45,sc:MIN,dens:.24,prog:[[0,3,7,10],[-4,0,3,7],[3,7,10,14],[-2,2,5,7]]}};
+function audioInit(){if(AU.ac)return;try{
+  const ac=AU.ac=new(window.AudioContext||window.webkitAudioContext)();
+  const out=ac.createBiquadFilter();out.type='lowpass';out.frequency.value=6000;out.connect(ac.destination);
+  AU.master=ac.createGain();AU.master.gain.setValueAtTime(0,ac.currentTime);AU.master.gain.linearRampToValueAtTime(.9,ac.currentTime+2);AU.master.connect(out);
+  AU.bus=ac.createGain();const dry=ac.createGain();dry.gain.value=.75;const rev=ac.createConvolver(),wet=ac.createGain();wet.gain.value=.5;
+  const len=ac.sampleRate*3.2,ir=ac.createBuffer(2,len,ac.sampleRate);for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len)**2.6}
+  rev.buffer=ir;AU.bus.connect(dry);dry.connect(AU.master);AU.bus.connect(rev);rev.connect(wet);wet.connect(AU.master);
+  AU.sfx=ac.createGain();AU.sfx.gain.value=1;AU.sfx.connect(AU.bus);AU.hornF=ac.createBiquadFilter();AU.hornF.type='lowpass';AU.hornF.frequency.value=600;AU.hornF.connect(AU.sfx);
+  const nl=ac.sampleRate*2,nb=ac.createBuffer(1,nl,ac.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nl;i++)nd[i]=Math.random()*2-1;AU.noise=nb;
+  AU.next=ac.currentTime+.2;setInterval(sched,100);
+  setAmb(AU.ambWant||null);
+  document.addEventListener('visibilitychange',()=>{document.hidden?ac.suspend():ac.resume()});
+}catch(e){AU.ac=null}}
+document.addEventListener('pointerdown',audioInit,{once:true});
+document.addEventListener('keydown',audioInit,{once:true});
+const now=()=>AU.ac.currentTime;
+function env(g,t,a,peak,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+dec)}
+function osc(f,t,dur,{type='sine',v=.05,a=.005,dest=AU.sfx,f1=null,det=0}={}){const ac=AU.ac,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);o.detune.value=det;env(g,t,a,v,dur);o.connect(g);g.connect(dest);o.start(t);o.stop(t+a+dur+.05)}
+function pluck(f,t,v=.05,dest){osc(f,t,1.8,{v,dest});osc(f*3,t,.6,{v:v*.12,dest})}
+function bell(f,t,v=.05){[1,2.76,5.4,8.9].forEach((m,i)=>osc(f*m,t,3.5/(i+1),{v:v/(i*1.6+1),a:.002}))}
+function noise(t,dur,{type='bandpass',f=1000,f1=null,q=1,v=.1,a=.01,rel=null}={}){const ac=AU.ac,s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=AU.noise;s.loop=true;fl.type=type;fl.frequency.setValueAtTime(f,t);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,t+dur);fl.Q.value=q;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);if(rel===null)g.gain.exponentialRampToValueAtTime(.0001,t+a+dur);else{g.gain.setValueAtTime(v,t+a+dur-rel);g.gain.linearRampToValueAtTime(0,t+a+dur)}
+  s.connect(fl);fl.connect(g);g.connect(AU.sfx);s.start(t,Math.random()*1.5);s.stop(t+a+dur+.05)}
+function padNote(f,t,dur,v=.02){const ac=AU.ac,lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;lp.connect(AU.bus);
+  [[-7,'sine'],[7,'triangle']].forEach(([d,ty])=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=f;o.detune.value=d;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*(ty==='sine'?1:.5),t+2.5);g.gain.setValueAtTime(v*(ty==='sine'?1:.5),t+dur);g.gain.linearRampToValueAtTime(0,t+dur+3);o.connect(g);g.connect(lp);o.start(t);o.stop(t+dur+3.1)})}
+function sched(){const ac=AU.ac;if(!ac||ac.state!=='running')return;if(AU.next<ac.currentTime)AU.next=ac.currentTime+.05;
+  while(AU.next<ac.currentTime+.4){const t=AU.next,b=AU.beat,M=MOODS[AU.mood],ch=M.prog[Math.floor(b/16)%M.prog.length];
+    if(b%16===0){ch.forEach(iv=>padNote(mtof(M.root+iv),t,8.4));padNote(mtof(M.root+ch[0]-12),t,8.4,.03)}
+    if(Math.random()<(b%4===0?M.dens+.25:M.dens)){const n=M.root+12+M.sc[Math.random()*5|0]+(Math.random()<.35?12:0);pluck(mtof(n),t+(Math.random()<.2?.27:0),.035,AU.bus)}
+    AU.next+=.55;AU.beat++}}
+function setMood(m){AU.mood=m}
+function setAmb(kind){AU.ambWant=kind;const ac=AU.ac;if(!ac)return;
+  if(AU.amb){const o=AU.amb;o.g.gain.setTargetAtTime(0,ac.currentTime,.6);setTimeout(()=>{try{o.s.stop();o.l.stop()}catch(e){}},3500);AU.amb=null}
+  if(!kind)return;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain(),l=ac.createOscillator(),lg=ac.createGain();
+  s.buffer=AU.noise;s.loop=true;const w=kind==='waves';f.type=w?'lowpass':'bandpass';f.frequency.value=w?520:380;f.Q.value=.5;
+  g.gain.value=0;g.gain.setTargetAtTime(w?.07:.03,ac.currentTime,1.2);l.frequency.value=w?.11:.06;lg.gain.value=w?.055:.02;
+  l.connect(lg);lg.connect(g.gain);s.connect(f);f.connect(g);g.connect(AU.master);s.start();l.start();AU.amb={s,g,l}}
+
+/* 선택지마다 다른 효과음 */
+const SFX={
+ wave(t){noise(t,1.6,{type:'lowpass',f:300,f1:1400,v:.22,a:.7,rel:.9});noise(t+.9,1.2,{type:'highpass',f:3000,v:.05,a:.2})},
+ leaves(t){for(let i=0;i<14;i++)noise(t+i*.045+Math.random()*.03,.05,{type:'bandpass',f:3500+Math.random()*2500,q:2,v:.12})},
+ crowd(t){for(let i=0;i<10;i++)noise(t+i*.07,.12,{type:'bandpass',f:400+Math.random()*500,q:6,v:.1});bell(1568,t+.25,.04);bell(1568,t+.5,.035)},
+ snow(t){for(let s=0;s<2;s++)for(let i=0;i<9;i++)noise(t+s*.38+i*.018+Math.random()*.01,.025,{type:'highpass',f:1800+Math.random()*2500,v:.22,a:.002})},
+ sparkle(t){[84,88,91,96,100].forEach((m,i)=>osc(mtof(m),t+i*.06,.8,{v:.04}))},
+ shutter(t){noise(t,.025,{type:'highpass',f:2500,v:.35,a:.001});noise(t+.07,.03,{type:'bandpass',f:1500,v:.3,a:.001});for(let i=0;i<5;i++)noise(t+.25+i*.04,.015,{type:'bandpass',f:2400,q:4,v:.15,a:.001})},
+ steps(t){for(let i=0;i<3;i++){osc(90,t+i*.28,.12,{v:.12,f1:50});noise(t+i*.28,.06,{type:'lowpass',f:700,v:.12,a:.003})}},
+ fluff(t){noise(t,.8,{type:'lowpass',f:500,f1:250,v:.14,a:.25});osc(mtof(60),t+.1,1.2,{v:.03,a:.2});osc(mtof(67),t+.2,1.2,{v:.025,a:.2})},
+ sizzle(t){noise(t,1,{type:'highpass',f:4000,v:.12,a:.05});for(let i=0;i<10;i++)noise(t+Math.random()*.9,.01,{type:'highpass',f:5000,v:.25,a:.001})},
+ sigh(t){osc(mtof(72),t,1.4,{v:.05,f1:mtof(64),a:.15});osc(mtof(76),t+.05,1.4,{v:.03,f1:mtof(67),a:.15});noise(t,1,{type:'lowpass',f:800,f1:300,v:.05,a:.3})},
+ temple(t){bell(196,t,.07)},
+ breeze(t){noise(t,1.4,{type:'bandpass',f:300,f1:1200,q:.8,v:.15,a:.5,rel:.8});[[2637,2794],[2794,3136]].forEach(([a,b],i)=>osc(a,t+.6+i*.12,.08,{v:.03,f1:b}))},
+ harp(t){[60,64,67,71,74,76,79].forEach((m,i)=>pluck(mtof(m),t+i*.07,.04))},
+ twinkle(t){for(let i=0;i<6;i++)osc(mtof(88+MAJ[Math.random()*5|0]+(i%2)*12),t+i*.11+Math.random()*.04,.9,{v:.025})},
+ neon(t){[[64,.0],[71,.12],[76,.24],[83,.36]].forEach(([m,d])=>osc(mtof(m),t+d,.5,{type:'triangle',v:.035,f1:mtof(m)*1.01}));noise(t,.5,{type:'bandpass',f:120,q:8,v:.04})},
+ fire(t){for(let i=0;i<12;i++)noise(t+Math.random()*.9,.02,{type:'bandpass',f:1200+Math.random()*1500,q:3,v:.18,a:.001});noise(t,1,{type:'lowpass',f:400,v:.05,a:.2});bell(523,t+.3,.025)},
+ train(t){for(let i=0;i<6;i++)noise(t+i*.17,.09,{type:'bandpass',f:i%2?900:600,q:1.5,v:.18-i*.015});osc(784,t+1.05,.5,{v:.035,a:.05});osc(659,t+1.05,.5,{v:.03,a:.05})},
+ plane(t){noise(t,1.6,{type:'bandpass',f:200,f1:2200,q:1.2,v:.14,a:.6,rel:.7})},
+ chime(t){[72,76,79,84].forEach((m,i)=>pluck(mtof(m),t+i*.1,.045))},
+ ticket(t){noise(t,.02,{type:'highpass',f:2000,v:.3,a:.001});pluck(mtof(84),t+.08,.05)},
+ tap(t){pluck(mtof(81),t,.035);pluck(mtof(88),t+.05,.025)},
+ page(t){noise(t,.18,{type:'bandpass',f:1500,f1:4000,q:.9,v:.1,a:.04})},
+ bus(t){noise(t,1.8,{type:'lowpass',f:180,v:.2,a:.4,rel:.6});osc(70,t,1.8,{type:'triangle',v:.05,a:.3});[0,.22].forEach(d=>{osc(392,t+.9+d,.16,{type:'triangle',v:.04});osc(494,t+.9+d,.16,{type:'triangle',v:.03})});noise(t+1.6,.35,{type:'highpass',f:3000,v:.08,a:.01})},
+ horn(t){[[73,0],[110,0],[73,1.5],[110,1.5]].forEach(([f,d])=>{osc(f,t+d,1.2,{type:'sawtooth',v:.035,a:.15,dest:AU.hornF});osc(f*2,t+d,1.2,{v:.02,a:.15})});noise(t,2.5,{type:'lowpass',f:400,v:.08,a:.5,rel:1})},
+ cabin(t){bell(784,t,.035);bell(622,t+.5,.035)},
+ takeoff(t){noise(t,3.2,{type:'bandpass',f:180,f1:1800,q:.7,v:.2,a:1.2,rel:1.6});osc(110,t,3,{type:'triangle',v:.03,f1:220,a:1})},
+ whistle(t){[0,.45].forEach((d,i)=>{const ac=AU.ac,o=ac.createOscillator(),g=ac.createGain(),l=ac.createOscillator(),lg=ac.createGain();o.frequency.value=i?622:740;l.frequency.value=5;lg.gain.value=6;l.connect(lg);lg.connect(o.frequency);env(g,t+d,.12,.05,.6);o.connect(g);g.connect(AU.sfx);o.start(t+d);l.start(t+d);o.stop(t+d+.9);l.stop(t+d+.9)});noise(t,.8,{type:'highpass',f:2500,v:.03,a:.1})},
+ arrive(t){[67,72,76,79,84].forEach((m,i)=>pluck(mtof(m),t+i*.13,.045));bell(1046,t+.75,.03)}};
+function sfx(k){if(!AU.ac||!AU.on||!SFX[k])return;try{SFX[k](now()+.01)}catch(e){}}
+
+/* ---------- 지도 ---------- */
+let x2=null;function paint(c,fn){const o=x;x=c.getContext('2d');x.imageSmoothingEnabled=false;fn();x=o}
+function inPoly(px,py,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))c=!c}return c}
+const SK=[[126.1,37.72],[126.6,37.76],[127.1,38.3],[128.35,38.62],[128.6,38.2],[129.0,37.7],[129.4,37.0],[129.45,36.3],[129.6,36.0],[129.4,35.5],[129.15,35.1],[128.5,34.9],[127.8,34.7],[127.4,34.5],[126.6,34.3],[126.3,34.6],[126.4,35.0],[126.5,35.6],[126.7,36.0],[126.5,36.4],[126.2,36.8],[126.6,37.0],[126.7,37.4]];
+const NK=[[125.8,37.75],[126.1,37.72],[126.6,37.76],[127.1,38.3],[128.35,38.62],[128.15,38.95],[125.8,38.95]];
+const EUR=[[-9,37],[-9,43],[-1.5,43.5],[-4.5,48.5],[1.5,50.5],[4.5,52.5],[8,54],[8.5,57],[10.5,57.7],[11.5,58.8],[10.5,59.2],[6,58.2],[5,62],[10,64],[14,68],[20,70],[26,71],[31,70],[40,67.5],[44,68.5],[60,69],[70,73],[80,73],[100,77],[113,74],[130,71],[155,72],[155,59],[142,59],[135,54],[141,52],[140,48],[135,43],[130,42.5],[129.5,40],[128.3,38.6],[129.4,37],[129.2,35.2],[126.5,34.4],[126.2,37],[125,37.8],[124.5,40],[121.5,39],[122,40.8],[119,39.2],[118,39],[120.5,37.3],[122.5,37],[120,35],[121.8,31],[122,29.5],[120,26],[117,23.5],[114,22.3],[110,21],[108.5,21.6],[106.5,20],[105.7,18.5],[106.6,17.5],[107.6,16.6],[108.6,15.9],[109.2,12],[107,10.5],[105,8.6],[104.5,10.5],[103,11],[101,12.6],[100,13.4],[99.2,10],[100.3,6.5],[103.4,1.4],[101,2.8],[98.3,8],[98.6,10.5],[98,15],[97.5,17],[94.5,16],[94,19],[92,22],[90,22],[88,21.6],[86.5,20],[80.3,15.5],[80.2,13],[79.8,10],[77.5,8],[76.5,9.5],[73,17],[72.8,21],[70,22.5],[66.5,25.4],[61.5,25.2],[57.3,25.8],[56.4,27],[51.5,27.9],[48.8,30],[47.9,29.5],[50,26.5],[51.5,24.2],[54,24],[56.4,26.3],[58.5,23.6],[59.8,22.4],[57.8,19],[55,17],[52,15.8],[45,12.8],[43.3,13.2],[42.7,16],[39,21.5],[35.4,28],[34.9,29.5],[34.5,31.5],[35.5,33.5],[36,36],[32,36.2],[28,36.7],[26.3,39.5],[26,40.8],[23,40.5],[22.5,37],[21,38.5],[19.5,41.5],[16,43.5],[13.5,45.6],[12.3,44.5],[14,42],[16,41],[18.5,40.2],[16,38],[15.6,40],[12,41.8],[10,44],[7.5,43.8],[4.5,43.4],[3.2,41.9],[0,38.7],[-2,36.7],[-5.6,36]];
+const AFR=[[-6,35.8],[-2,35.2],[3,36.8],[10,37],[11,33.2],[15.5,31.4],[19,30.3],[20,30.8],[25,32],[29.9,31.2],[32.3,31.2],[33.5,28],[36,24],[37.3,21],[39.5,15.5],[43.3,12.5],[51,11.8],[51,10.5],[48,5],[41,-2],[39.5,-5],[40,-10.5],[40.5,-13],[13,-13],[12,-5],[9,-1],[9.5,3],[5,4.3],[-8,4.5],[-13,8],[-17.2,14.7],[-17,21],[-13,27.6],[-9.6,30.4]];
+const ISL=[[[-5.7,50],[1.5,51],[1.7,52.7],[0,53.5],[-2,55.8],[-1.8,57.6],[-5,58.6],[-6.2,56.5],[-5,54.6],[-3,53.4],[-4.5,52]],[[-10,51.6],[-6,52],[-6,54],[-8,55.2],[-10,54]],
+ [[129.6,33.2],[131,31.3],[132,33.5],[135,33.5],[137,34.5],[140,35],[141,38],[141.5,41.4],[140,41],[139.8,40],[139,38],[136.8,37.3],[133,35.5],[130.9,34.2]],[[140,41.6],[141,43.2],[141.7,45.4],[145.5,43.3],[143,42]],
+ [[120.1,23],[121,25.4],[122,25],[120.8,21.9]],[[108.6,19],[110.5,20.1],[111,19.5],[109.5,18.2]],[[95.3,5.6],[98,4],[104,-1],[106,-3],[105.8,-5.8],[104,-5],[101,-2],[98.5,1.5],[97,2.5]],[[109,1.5],[109.6,-1],[110.2,-3],[114.5,-3.8],[116.5,-3],[117.5,0],[119,5],[117,7],[115,5],[111,2.5]],[[105.2,-6.8],[106,-5.9],[108,-6.3],[111,-6.4],[112.7,-6.9],[114.4,-7.7],[114.4,-8.6],[111,-8.2],[108,-7.8],[106,-7.4]],[[114.5,-8.1],[115.6,-8.2],[115.7,-8.6],[115.1,-8.9],[114.4,-8.4]],[[119.5,-5.5],[120.4,-2.5],[119.3,0.8],[120.8,1.3],[124.9,1.5],[121.5,0.5],[121,-1],[123.4,-1.3],[121.5,-4.7],[120.5,-5.6]],[[131,-1],[135,-3.3],[138,-1.5],[141,-2.6],[145,-4],[147.5,-6],[150,-10.5],[147,-10],[143,-9],[141,-9.1],[138,-8.3],[137.5,-5],[134,-4],[132.3,-2.8]],[[141.5,-13],[142.5,-10.7],[143.5,-13]],[[130,-13],[132,-11.2],[136.8,-13]],[[127.6,26.05],[128.3,26.85],[127.9,26.7],[127.65,26.3]],
+ [[120,18.5],[122.3,18.5],[124,13],[121.8,13.8],[120.6,14.5],[120,16]],[[122,7],[126.5,7],[126,9.5],[123.5,8.5]],[[79.8,9.8],[81.8,7.5],[81,6],[80,6.2]]];
+const MAPS={
+ kr:{w:104,h:118,lon0:125.8,lat1:38.95,s:.05,land:(lo,la)=>inPoly(lo,la,SK)||((lo-126.55)/.5)**2+((la-33.38)/.21)**2<1||((lo-130.87)/.1)**2+((la-37.5)/.07)**2<1?1:inPoly(lo,la,NK)?2:0},
+ wd:{w:110,h:61,lon0:-12,lat1:79,s:1.5,land:(lo,la)=>inPoly(lo,la,EUR)||inPoly(lo,la,AFR)||ISL.some(P=>inPoly(lo,la,P))?1:0}};
+function proj(M,lon,lat){return[(lon-M.lon0)/M.s,(M.lat1-lat)/M.s]}
+function drawMap(key,cvs,d){const M=MAPS[key];if(!M.g){M.g=new Uint8Array(M.w*M.h);for(let Y=0;Y<M.h;Y++)for(let X=0;X<M.w;X++)M.g[Y*M.w+X]=M.land(M.lon0+(X+.5)*M.s,M.lat1-(Y+.5)*M.s)}
+  const g=M.g,at=(X,Y)=>X<0||Y<0||X>=M.w||Y>=M.h?0:g[Y*M.w+X];
+  paint(cvs,()=>{R('#bfe6ee',0,0,M.w,M.h);
+    for(let Y=0;Y<M.h;Y++)for(let X=0;X<M.w;X++){const v=at(X,Y);
+      if(!v){if((X*3+Y*7)%23===0)R('#dff4f7',X,Y,2,1);continue}
+      const edge=!at(X-1,Y)||!at(X+1,Y)||!at(X,Y-1)||!at(X,Y+1);
+      R(v===2?(edge?'#cfc6b2':'#e2dccb'):(edge?'#7fa36b':((X+Y)%9===0?'#9cc87e':'#a8d08a')),X,Y,1,1)}
+    const S=proj(M,126.98,37.57),P=proj(M,d.ll[0],d.ll[1]);
+    if(key==='wd'){const mx=(S[0]+P[0])/2,my=Math.max(3,Math.min(S[1],P[1])-Math.abs(S[0]-P[0])*.22),n=80;
+      for(let i=0;i<=n;i++){if(i%6>2)continue;const t=i/n,X=(1-t)**2*S[0]+2*(1-t)*t*mx+t*t*P[0],Y=(1-t)**2*S[1]+2*(1-t)*t*my+t*t*P[1];R('#3b2a3a',X,Y,1,1)}}
+    else D.filter(o=>!o.far&&o.id!==d.id&&stamps.includes(o.id)).forEach(o=>{const q=proj(M,o.ll[0],o.ll[1]);R('#3b2a3a',q[0]-1,q[1]-1,3,3);R(o.st,q[0],q[1],1,1)});
+    R('#3b2a3a',S[0]-1,S[1]-1,3,3);R('#fffaf0',S[0],S[1],1,1);
+    R('#3b2a3a',P[0],P[1]-8,1,9);R('#e86f5a',P[0]+1,P[1]-8,5,3);R('#3b2a3a',P[0]+1,P[1]-5,5,1);R('#3b2a3a',P[0]-1,P[1],3,1)});
+  const S=proj(M,126.98,37.57),P=proj(M,d.ll[0],d.ll[1]),pc=(v,m)=>(v/m*100).toFixed(2)+'%';
+  return `<span class="lbl dim" style="left:${pc(S[0],M.w)};top:${pc(S[1]+1,M.h)}">서울</span><span class="lbl${P[0]/M.w>.7?' r':''}${P[1]<12?' b':''}" style="left:${pc(P[0]+(P[0]/M.w>.7?-1:3),M.w)};top:${pc(P[1]<12?P[1]+2:P[1]-8,M.h)}">${d.n}</span>`}
+function drawCourse(cvs,d){const CW=96,CH=64,lat0=d.c.reduce((a,s)=>a+s[3],0)/d.c.length,k=Math.cos(lat0*Math.PI/180);
+  const xs=d.c.map(s=>s[2]*k),ys=d.c.map(s=>s[3]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sc=Math.min((CW-22)/Math.max(x1-x0,1e-3),(CH-20)/Math.max(y1-y0,1e-3)),ox=(CW-(x1-x0)*sc)/2,oy=(CH-(y1-y0)*sc)/2;
+  const pts=d.c.map((s,i)=>[ox+(xs[i]-x0)*sc,oy+(y1-ys[i])*sc]);
+  for(let it=0;it<30;it++)for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[j][0]-pts[i][0],dy=pts[j][1]-pts[i][1],dd=Math.hypot(dx,dy)||.01;if(dd<9){const m=(9-dd)/2,ux=dx/dd||1,uy=dy/dd;pts[i][0]-=ux*m;pts[i][1]-=uy*m;pts[j][0]+=ux*m;pts[j][1]+=uy*m}}
+  pts.forEach(p=>{p[0]=Math.max(6,Math.min(CW-6,p[0]));p[1]=Math.max(6,Math.min(CH-6,p[1]))});
+  paint(cvs,()=>{R('#f6ead0',0,0,CW,CH);for(let i=8;i<CW;i+=8)R('#efdfbf',i,0,1,CH);for(let i=8;i<CH;i+=8)R('#efdfbf',0,i,CW,1);
+    for(let i=0;i<14;i++){const X=hh(i,d.id.length)*CW,Y=hh(i+3,7)*CH;R(i%3?'#b8d49a':'#c8e0d8',X,Y,2,1)}
+    R('#c8574d',CW-7,3,1,3);R('#3b2a3a',CW-7,6,1,3);R('#3b2a3a',CW-9,6,5,1);
+    for(let i=0;i<pts.length-1;i++){const [a,b]=pts[i],[c,e]=pts[i+1],n=Math.ceil(Math.hypot(c-a,e-b));for(let s=0;s<n;s++)if(s%4<2)R('#e86f5a',a+(c-a)*s/n,b+(e-b)*s/n,1,1)}});
+  return pts.map((p,i)=>`<span class="num" style="left:${(p[0]/CW*100).toFixed(2)}%;top:${(p[1]/CH*100).toFixed(2)}%">${i+1}</span>`).join('')}
+
+/* ---------- 명물 짤 (도트 일러스트) ---------- */
+function lbg(top,bot,gr,gy=40){for(let i=0;i<6;i++)R(mix(top,bot,i/5),0,i*8,64,8);if(gr)R(gr,0,gy,64,48-gy)}
+const LM={
+ jeju(){lbg('#7fc8e8','#e6f6ff','#8fbf6a',40);cloud(4,8,'#fff');cloud(44,4,'#fff');const s='#5e585c',d='#3a3438',l='#7a7276';
+  R(s,27,4,10,7);R(l,28,4,3,1);R(s,24,10,16,2);R(d,24,12,16,1);R(s,25,13,14,11);R(l,27,15,4,4);R(l,33,15,4,4);R(d,28,16,2,2);R(d,34,16,2,2);
+  R(l,31,18,2,4);R(d,30,21,1,1);R(d,33,21,1,1);R(d,30,23,4,1);R(s,24,24,16,16);R(l,26,28,7,3);R(d,26,31,7,1);R(l,31,33,7,3);R(d,31,36,7,1);R(d,22,40,20,4);
+  for(let i=0;i<26;i++)R('#4a4448',25+hh(i,3)*14,13+hh(i,7)*26,1,1);[[9,41],[14,43],[52,42],[57,44]].forEach(([a,b])=>{circ('#f29a2e',a,b,2);R('#3f8a4a',a,b-3,2,1)})},
+ gangneung(){lbg('#fbe3c8','#fff4e3','#c8946a',36);R('#b07a50',0,40,64,1);R('#3a2a2a',8,26,30,13);R('#4a3636',8,26,30,2);R('#3a2a2a',5,28,3,3);R('#3a2a2a',38,28,3,3);
+  R('#e86f5a',10,22,26,5);circ('#fffaf0',18,23,3);circ('#fffaf0',27,22,3);R('#5fa04e',22,21,2,1);R('#5fa04e',31,24,2,1);
+  for(let k=0;k<3;k++)for(let j=0;j<7;j++)R('#ffffff',14+k*8+Math.round(Math.sin(j*.9+k)*1.5),18-j*2,1,1);
+  R('#ffffff',44,25,13,12);R('#8a5a3a',45,25,11,3);R('#f4e2c8',49,26,1,1);R('#f4e2c8',51,26,1,1);R('#f4e2c8',50,27,1,1);R('#ffffff',57,28,3,1);R('#ffffff',59,28,1,5);R('#ffffff',57,32,3,1);R('#e8e0d8',41,37,19,2)},
+ gyeongju(){lbg('#f6a6a0','#ffe3c2','#7fa36b',40);circ('#fff0c8',50,12,5);
+  for(let y=12;y<40;y++){const p=(y-12)/28,w=Math.round(10+p*p*12);R('#cdb48a',32-w/2,y,w,1);if(y%3===0)R('#a88e66',32-w/2,y,w,1);if(y%3===1)for(let X=32-w/2+(y%2)*2;X<32+w/2;X+=4)R('#b89e76',X,y,1,2)}
+  R('#a88e66',26,9,12,2);R('#cdb48a',27,11,10,1);R('#3b2a3a',30,23,4,4);R('#a88e66',19,40,26,2);R('#cdb48a',18,42,28,2);[[8,44,'#f7b8c8'],[54,45,'#fff3a0'],[12,46,'#ffffff']].forEach(f=>circ(f[2],f[0],f[1],1))},
+ jeonju(){R('#d8a878',0,0,64,48);for(let y=4;y<48;y+=8)R('#c8946a',0,y,64,1);circ('#2e2a33',30,24,19);circ('#45404a',30,24,17);circ('#fffaf0',30,24,15);
+  ['#5fa04e','#f29a2e','#f6e08a','#8a5a3a','#a8784a','#3f8a4a'].forEach((c,i)=>{const a=i*Math.PI/3;for(let r=6;r<14;r++)for(let da=-.42;da<=.42;da+=.08)R(c,30+Math.cos(a+da)*r,24+Math.sin(a+da)*r,1,1)});
+  circ('#ffffff',30,24,5);circ('#f6c23c',30,24,2);R('#d8402a',35,18,3,2);R('#d9d3dc',53,8,5,7);R('#d9d3dc',54,15,3,28)},
+ yeosu(){lbg('#1e2148','#5a4a8a');for(let i=0;i<12;i++)R('#fff',hh(i,2)*64,hh(i,5)*20,1,1);circ('#fff4c8',52,8,3);R('#1c2c5a',0,32,64,16);
+  const L=['#ff8a7a','#ffd27a','#8ad6ff'];for(let X=4;X<61;X++){const y=31-Math.round(Math.sin((X-4)/56*Math.PI)*12);if(X%2===0)R(L[X%3],X,y,1,1)}
+  R('#4a4a6a',0,31,64,1);for(let X=0;X<64;X+=3)R(L[X%3],X,31,1,1);for(let k=0;k<22;k++){x.globalAlpha=.6;R(L[k%3],k*3,34+(k%5)*3,2,1);x.globalAlpha=1}},
+ damyang(){lbg('#cfeedd','#f6fff0','#6f9a4e',40);for(let i=0;i<8;i++){const X=i*8+2;R(i%2?'#5f9a4e':'#7cb35f',X,0,3,40);for(let y=6;y<40;y+=10)R('#4a7a3c',X,y,3,1);R('#9ccf6a',X+3,6+i*3,4,1)}
+  R('#4f8a3e',22,27,20,13);R('#3f6e3e',22,33,20,1);R('#6aa85a',23,27,2,13);R('#fffaf0',23,24,18,3);circ('#fffaf0',28,24,2);circ('#fffaf0',36,24,2);R('#c8402a',30,23,2,2);R('#e8c88a',35,24,1,1);
+  for(let j=0;j<5;j++)R('#ffffff',29+Math.round(Math.sin(j)*1.5),20-j*2,1,1)},
+ pyeongchang(){lbg('#9cc4e8','#e8f2ff');for(let X=0;X<64;X++){const y=30-Math.round(Math.sin(X/64*Math.PI)*4);R('#9ccf6a',X,y,1,48-y)}R('#8a5a4a',0,35,64,1);for(let X=2;X<64;X+=8)R('#8a5a4a',X,33,1,5);
+  const sheep=(cx,cy,r)=>{[[0,0],[r-1,0],[1-r,1],[0,-2]].forEach(([a,b])=>circ('#ffffff',cx+a,cy+b,r));circ('#e6e6ee',cx,cy+2,r-2);R('#3b2a3a',cx+r+1,cy-2,4,5);R('#3b2a3a',cx+r,cy-2,1,1);R('#fff',cx+r+2,cy-1,1,1);R('#3b2a3a',cx-3,cy+r,1,4);R('#3b2a3a',cx+2,cy+r,1,4)};
+  sheep(24,32,5);sheep(46,37,3)},
+ busan(){lbg('#f7b79a','#ffe9c8');R('#4f8fc8',0,30,64,18);for(let i=0;i<8;i++)R('#bfe6ee',hh(i,4)*64,33+hh(i,9)*12,4,1);
+  for(let X=0;X<42;X++){const h=Math.round(26-X*.45);R('#c8a888',X,32-h,1,h+16)}
+  [[2,12,'#5a8fd0'],[13,14,'#e86f5a'],[24,19,'#5a8fd0'],[5,21,'#f6d55c'],[16,24,'#5a8fd0'],[28,26,'#e86f5a'],[3,29,'#5a8fd0']].forEach(([a,b,c])=>{R('#ffffff',a,b,9,6);R(c,a-1,b-1,11,2);R('#5a8fd0',a+2,b+2,2,2);R('#5a8fd0',a+5,b+2,2,2)});
+  for(let i=0;i<8;i++)R('#e8e0d8',36-i*2,30+i,4,1);R('#3b2a3a',30,33,3,2);R('#3b2a3a',30,32,1,1);R('#3b2a3a',32,32,1,1)},
+ ulleung(){lbg('#7fb8e8','#e6f4ff');R('#1f8ab8',0,34,64,14);for(let i=0;i<6;i++)R('#7ac8e8',hh(i,2)*64,37+hh(i,5)*9,4,1);for(let X=40;X<64;X++){const top=Math.round(22+(64-X)*.3+Math.sin(X*.6)*2);R('#6a6266',X,top,1,48-top);R('#4f8a4e',X,top,1,2)}
+  [14,30].forEach((y,r)=>{R('#3b2a3a',0,y,64,1);for(let i=0;i<6;i++){const X=3+i*10+r*4;R('#f2b28a',X,y+1,4,6);R('#f2b28a',X+1,y+7,2,1);R('#e8946a',X+1,y+2,2,3);for(let k=0;k<3;k++)R('#e8946a',X+k*1.5,y+8,1,3)}})},
+ sokcho(){lbg('#8fc8f0','#e8f6ff');for(let X=0;X<64;X++){const g=Math.max(18-Math.abs(X-14)*.9,22-Math.abs(X-40)*.8,12-Math.abs(X-60));if(g>0)R('#6a7a9a',X,Math.round(30-g),1,Math.round(g)+1)}
+  R('#3a8ac8',0,30,64,18);for(let i=0;i<6;i++)R('#7ab4e0',hh(i,2)*64,34+hh(i,4)*12,4,1);R('#3b2a3a',0,27,64,1);
+  R('#8a8a96',12,34,34,4);R('#6a6a76',12,38,34,1);for(let X=13;X<46;X+=4)R('#c8c8d4',X,31,1,3);R('#c8c8d4',12,31,34,1);
+  R('#f2c7a5',22,23,3,2);R('#e86f5a',22,25,3,6);R('#f2c7a5',24,26,4,1);R('#3d4a6b',22,31,3,3);R('#f2c7a5',34,24,3,2);R('#5a8fd0',34,26,3,5);R('#f2c7a5',33,27,1,1);R('#3d4a6b',34,31,3,3)},
+ tongyeong(){R('#f4ead2',0,0,64,48);for(let y=6;y<48;y+=8)R('#e8dcc0',0,y,64,1);R('#ffffff',4,8,56,32);R('#e8e0d8',4,39,56,2);
+  for(let i=0;i<5;i++){const X=8+i*6;R('#2a3a2a',X,12,4,12);R('#fffaf0',X+1,12,2,1);R('#fffaf0',X+1,23,2,1)}
+  circ('#d8402a',46,18,6);for(let i=0;i<5;i++)R('#f4e2c8',42+hh(i,3)*8,14+hh(i,6)*8,2,1);
+  [[38,29],[44,31],[50,28],[54,32]].forEach(([a,b])=>{R('#e8a070',a,b,4,4);R('#d88a5a',a,b+3,4,1)});R('#d8b080',8,30,26,1)},
+ andong(){lbg('#f2c79a','#fff1dc');circ('#e8c89a',32,21,15);circ('#e8c89a',32,30,10);R('#c8a070',22,10,20,1);R('#c8a070',24,12,16,1);
+  R('#5a3a2a',21,16,8,1);R('#5a3a2a',35,16,8,1);for(let i=0;i<6;i++){const u=i>0&&i<5?1:0;R('#3b2a3a',22+i,20-u,1,1);R('#3b2a3a',36+i,20-u,1,1)}
+  R('#e8a090',19,24,4,2);R('#e8a090',41,24,4,2);R('#c8a070',31,21,2,6);R('#b8905a',30,26,4,1);
+  for(let i=0;i<16;i++)R('#3b2a3a',24+i,30+Math.round(Math.sin(i/15*Math.PI)*3),1,1);R('#c8a070',23,35,18,1);R('#b8905a',28,38,8,1)},
+ nami(){lbg('#bfe0f0','#fff4e0','#8fb87a',24);for(let y=24;y<48;y++){const h=1+(y-24)*.8;R('#d9c9a0',32-h,y,h*2,1)}
+  for(let k=5;k>=0;k--){const f=1-k/6;for(const sd of[-1,1])tri(32+sd*(4+f*26),Math.round(26+f*20),Math.round(8+f*34),Math.round(2+f*8),k%2?'#d8843a':'#c8642a')}
+  for(let i=0;i<10;i++)R('#e8843a',hh(i,7)*64,hh(i,1)*44,1,1)},
+ boseong(){lbg('#cfe8f0','#f6fff0');R('#2f5a3a',6,2,3,14);R('#2f5a3a',12,5,3,11);R('#2f5a3a',56,3,3,13);
+  for(let r=0;r<9;r++){const y=12+r*4;for(let X=0;X<64;X++){const yy=y+Math.round(Math.sin((X+r*9)*.25)*1.2);R(r%2?'#3f8a3e':'#4f9a4a',X,yy,1,4);if((X+r)%3===0)R('#7cc06a',X,yy,1,1)}}
+  R('#ffffff',40,32,14,10);R('#9ccf6a',41,32,12,2);R('#ffffff',54,34,3,1);R('#ffffff',56,34,1,4);R('#ffffff',54,37,3,1);R('#e8e0d8',37,42,20,2);for(let j=0;j<5;j++)R('#ffffff',46+Math.round(Math.sin(j)),29-j*2,1,1)},
+ danyang(){lbg('#8fc8f0','#eaf6ff');for(let X=0;X<64;X++){const h=Math.round(8+Math.sin(X*.1)*4);R('#6a8a6a',X,30-h,1,h)}R('#4aa8b8',0,30,64,18);
+  [[16,6,10],[32,9,16],[48,6,9]].forEach(([c,w,h])=>{for(let i=0;i<h;i++){const ww=Math.round(w*(.55+.45*i/h));R('#6a6a5a',c-ww/2,30-h+i,ww,1)}R('#4f8a4e',c-1,30-h,3,1);x.globalAlpha=.35;for(let i=0;i<h/2;i++)R('#6a6a5a',c-w/3,31+i,w*.66,1);x.globalAlpha=1});
+  R('#c8402a',29,11,7,1);R('#c8402a',30,10,5,1);R('#3b2a3a',30,12,1,2);R('#3b2a3a',34,12,1,2);
+  R('#f6d55c',44,4,10,1);R('#f6d55c',43,5,1,1);R('#f6d55c',54,5,1,1);R('#3b2a3a',45,6,1,3);R('#3b2a3a',52,6,1,3);R('#e86f5a',48,9,2,2)},
+ suncheon(){lbg('#f7a07a','#ffe0b0');circ('#fff0c8',44,20,6);R('#c89a48',0,24,64,24);for(let y=24;y<48;y++){const X=30+Math.round(Math.sin(y*.25)*10);R('#7a98c0',X-4,y,8,1)}
+  for(let i=0;i<70;i++){const X=hh(i,1)*64|0,y0=22+hh(i,2)*24|0;R(i%2?'#d8b060':'#b8883a',X,y0,1,48-y0);R('#f0d898',X-1,y0-1,2,2)}},
+ fukuoka(){lbg('#1e1e40','#6a3a5a');R('#1a2a48',0,40,64,8);for(let k=0;k<8;k++)R('#ff9a5a',k*8+2,43+(k%2)*2,3,1);
+  R('#c8402a',8,8,48,4);for(let i=0;i<6;i++)R(i%2?'#fffaf0':'#c8402a',10+i*7,12,6,7);x.globalAlpha=.35;circ('#ffb070',6,18,5);x.globalAlpha=1;R('#ff6a4a',4,15,5,6);R('#ffd27a',6,16,1,4);
+  R('#6b4434',8,30,48,10);R('#8a5a3a',8,30,48,1);for(let y=22;y<29;y++){const w=20-(y-22)*1.2;R('#2e2a33',32-w/2,y,w,1)}R('#f4e2c8',23,21,18,2);circ('#e8b0a0',27,20,2);R('#5fa04e',33,20,3,1);circ('#ffffff',37,20,1);
+  for(let j=0;j<5;j++)R('#ffffff',30+Math.round(Math.sin(j)),17-j*2,1,1);R('#8a5a3a',16,40,4,2);R('#8a5a3a',40,40,4,2)},
+ okinawa(){lbg('#4ab8f0','#d6f6ff');R('#3ad0d0',0,26,64,8);R('#c8402a',0,32,64,16);for(let X=0;X<64;X+=4)R('#a82a1a',X,32,1,16);for(let X=2;X<64;X+=6)R('#fffaf0',X,32,1,16);
+  R('#d8843a',22,20,18,12);circ('#d8843a',31,14,8);[[23,8],[39,8],[22,14],[40,14],[25,6],[37,6]].forEach(([a,b])=>circ('#a8542a',a,b,2));
+  R('#fffaf0',26,10,4,4);R('#fffaf0',33,10,4,4);R('#2e2a33',27,11,2,2);R('#2e2a33',34,11,2,2);R('#a82a1a',27,16,9,3);R('#fffaf0',28,16,1,1);R('#fffaf0',34,16,1,1);R('#d8843a',22,30,5,3);R('#d8843a',35,30,5,3)},
+ hongkong(){R('#c8946a',0,0,64,48);for(let y=5;y<48;y+=8)R('#b8845a',0,y,64,1);R('#d8b070',8,22,48,18);for(let X=8;X<56;X+=3)R('#c8a060',X,22,1,18);R('#a8783a',8,30,48,2);R('#b8904a',8,20,48,3);
+  [[20,19],[32,18],[44,19]].forEach(([a,b])=>{circ('#f4ece8',a,b,5);R('#e0d0cc',a-3,b-3,6,1);R('#e0d0cc',a-2,b-1,4,1);R('#f0b8a8',a-1,b+1,3,1)});
+  for(let k=0;k<3;k++)for(let j=0;j<5;j++)R('#ffffff',18+k*12+Math.round(Math.sin(j+k)),11-j*2,1,1);R('#3a2a2a',50,4,1,30);R('#3a2a2a',53,4,1,30)},
+ halong(){lbg('#bcd8e8','#f0f6f0');R('#4ab0a0',0,30,64,18);[[2,6,12,'#9ab8b0'],[54,8,10,'#9ab8b0'],[8,8,8,'#4f6a5a'],[20,6,16,'#4f6a5a'],[44,9,6,'#4f6a5a'],[58,6,14,'#4f6a5a']].forEach(([a,w,top,c])=>{R(c,a,top,w,31-top);circ(c,a+w/2,top+1,Math.floor(w/2));R('#5f8a5a',a,top,w,2)});
+  R('#6b4434',26,35,18,3);R('#6b4434',24,34,3,2);R('#e8843a',30,21,5,13);R('#e8843a',36,24,5,10);for(let y=23;y<34;y+=3){R('#c8642a',30,y,5,1);R('#c8642a',36,y+1,5,1)}
+  for(let k=0;k<10;k++){x.globalAlpha=.5;R('#ffffff',k*7,38+(k%3)*3,3,1);x.globalAlpha=1}},
+ bali(){lbg('#ffd8a0','#fff6dc');for(let X=0;X<64;X+=6)circ('#3f6e3e',X,10,5);R('#3f6e3e',0,10,64,6);
+  for(let r=0;r<6;r++){const y=16+r*5;R(r%2?'#7cc05a':'#6ab04a',0,y,64,5);for(let X=0;X<64;X++)R('#4f8a3e',X,y+Math.round(Math.sin(X*.15+r)),1,1);R('#bfe6ee',hh(r,3)*56,y+2,5,1)}
+  R('#8a5a3a',40,0,1,24);R('#8a5a3a',50,0,1,24);R('#8a5a3a',38,24,14,2);R('#5a3b2e',43,13,3,3);R('#f2c7a5',43,16,3,2);R('#e86f5a',42,18,6,6);for(let i=0;i<8;i++)R('#e86f5a',41-i,22+i*.6,3,2)},
+ paris(){lbg('#9ad0f0','#fff0e0');for(let y=4;y<40;y++){const w=Math.round(1+((y-4)/36)**2*20);R('#7a6a5a',20-w/2,y,w,1);if(y>33){const hw=Math.round((y-33)*1.6);R(mix('#9ad0f0','#fff0e0',.9),20-hw/2,y,hw,1)}}
+  R('#5a4a3a',14,22,13,1);R('#5a4a3a',11,31,19,1);
+  R('#fffaf0',0,40,64,8);for(let X=0;X<64;X+=8){R('#e86f5a',X,40,4,4);R('#e86f5a',X+4,44,4,4)}
+  [0,1,2,3,4].forEach(i=>circ(i%2?'#e8a858':'#d8903a',36+i*5,34-Math.round(Math.sin(i/4*Math.PI)*4),i===2?4:3));R('#ffffff',56,33,6,6);R('#6b4434',57,33,4,1)},
+ santorini(){lbg('#f79a7a','#ffe0b8');circ('#fff0c8',50,28,5);R('#2a6ac8',0,30,64,18);for(let k=0;k<5;k++)R('#ffd8a0',46+Math.round(Math.sin(k)*2),32+k*3,8-k,1);
+  for(let X=0;X<36;X++){const h=Math.round(30-X*.6);R('#a8584a',X,48-h,1,h)}
+  [[1,20,1],[11,22,0],[20,27,1],[4,29,0],[14,32,1],[26,34,0]].forEach(([a,b,dome])=>{if(dome)circ('#2f5ab8',a+4,b,3);R('#ffffff',a,b,9,6);R('#2f5ab8',a+2,b+2,1,2);R('#2f5ab8',a+6,b+2,1,2)})},
+ kyoto(){lbg('#f7c6d0','#fff0e6');R('#5f8a5a',0,8,64,32);R('#c9bfa8',0,40,64,8);for(let y=24;y<48;y++){const h=1+(y-24)*1.1;R('#d8ccb0',32-h,y,h*2,1)}R('#fff6e0',30,18,4,6);
+  for(let k=7;k>=0;k--){const f=1-k/8,w=Math.round(8+f*50),h=Math.round(6+f*36),top=24-Math.round(h*.6),bot=24+Math.round(h*.45),p=Math.max(1,Math.round(f*4));
+   R('#2e2a33',32-w/2-2,top-1,w+4,1);R('#e8462a',32-w/2-1,top,w+2,2);R('#e8462a',32-w/2+1,top+4,w-2,1);R('#d83a22',32-w/2,top+2,p,bot-top-2);R('#d83a22',32+w/2-p,top+2,p,bot-top-2)}},
+ sapporo(){lbg('#2a3a6a','#7a8ac0');for(let i=0;i<16;i++)R('#fff',hh(i,1)*64,hh(i,8)*22,1,1);R('#8a5a3a',0,38,64,10);
+  for(let y=24;y<38;y++){const w=46-(y-24)*1.6;R(y===28||y===29?'#fffaf0':'#e8462a',32-w/2,y,w,1)}R('#e8a050',10,20,44,5);R('#f6e08a',13,22,30,1);R('#f6e08a',16,23,24,1);
+  circ('#e8b0a0',20,20,4);circ('#c87a6a',20,20,2);circ('#ffffff',33,19,3);circ('#f29a2e',33,19,1);for(let i=0;i<7;i++)R('#f6d55c',38+i%3*2,21+(i>>1)%2,1,1);R('#fff3a0',44,16,5,4);R('#2e3a2e',49,12,5,9);
+  for(let i=0;i<22;i++)R('#d8b080',6+i,8+i*.35,1,1);for(let i=0;i<22;i++)R('#d8b080',4+i,11+i*.35,1,1);for(let j=0;j<6;j++){R('#ffffff',24+Math.round(Math.sin(j)),14-j*2,1,1);R('#ffffff',38+Math.round(Math.cos(j)),13-j*2,1,1)}},
+ chiangmai(){lbg('#ffd29a','#fff4d6','#7fb05e',38);for(let i=0;i<8;i++){const w=Math.max(1,10-i*1.2);R('#e8b84a',10-w/2,30-i*2,w,2)}circ('#3f6e3e',56,26,7);R('#6b4434',55,30,3,9);
+  const g='#8a8a96',d='#6a6a76';R(g,27,19,22,13);R(g,26,21,24,9);circ(g,24,21,7);R(d,27,15,7,11);R(d,28,16,5,9);R(g,17,23,3,8);R(g,16,30,3,2);R(g,18,32,2,1);R('#fffaf0',19,26,4,1);R('#2e2a33',21,19,1,1);
+  [28,35,42,47].forEach(X=>R(g,X,31,4,8));R(d,49,22,1,6);for(let i=0;i<5;i++)R('#a8784a',8+i*11,44,5,1)},
+ danang(){lbg('#1a2048','#4a3a7a');for(let i=0;i<12;i++)R('#fff',hh(i,6)*64,hh(i,2)*20,1,1);R('#1c2c5a',0,34,64,14);R('#4a4a6a',0,32,64,2);
+  for(let X=4;X<50;X++){const y=27-Math.round(Math.abs(Math.sin((X-4)/46*Math.PI*2))*8);R('#f6d55c',X,y,2,2);if(X%6===0)R('#c8a83a',X,y+2,1,32-y-2)}
+  R('#f6d55c',48,19,7,5);R('#f6d55c',49,17,1,2);R('#f6d55c',52,17,1,2);R('#e8462a',53,20,1,1);circ('#e8462a',61,21,3);circ('#ff8a3a',59,21,2);circ('#ffd27a',57,21,1);
+  for(let k=0;k<16;k++){x.globalAlpha=.55;R(k%2?'#f6d55c':'#ff8a3a',k*4,36+(k%4)*3,3,1);x.globalAlpha=1}},
+ taipei(){lbg('#9ad0f0','#e8f6ff','#8a8a96',42);cloud(4,8,'#fff');
+  R('#4a7a7a',31,0,2,4);R('#6aa0a0',29,4,6,4);for(let s=0;s<7;s++){const y=8+s*4;R('#6aa0a0',27,y,10,4);R('#4a7a7a',27,y+3,10,1);R('#8ac0c0',28,y,1,3)}R('#5a8a8a',24,36,16,6);
+  R('#ffffff',43,20,15,2);R('#f4e2c8',44,22,13,20);R('#e8d0b0',44,22,2,20);for(let i=0;i<12;i++)R('#2e2a33',45+(i%5)*2+(i>>2)%2,36+(i/5|0)*2,1,1);R('#e86f5a',51,10,2,11)},
+ interlaken(){lbg('#6ab8f0','#e0f4ff','#7cc05a',34);cloud(6,6,'#fff');
+  for(let X=0;X<64;X++){const g=Math.max(26-Math.abs(X-30)*.9,18-Math.abs(X-54)*1.1);if(g>0){const t=Math.round(34-g);R('#6a7a9a',X,t,1,34-t);if(g>13)R('#ffffff',X,t,1,Math.min(6,Math.round(g-12)))}}
+  R('#5aa04a',0,42,64,1);R('#3b2a3a',0,43,64,1);[[8,'#d8402a'],[28,'#d8402a']].forEach(([a,c])=>{R(c,a,35,18,8);R('#a82a1a',a,34,18,1);for(let i=0;i<3;i++)R('#bfe6ee',a+2+i*5,37,3,3);R('#fffaf0',a,41,18,1);R('#2e2a33',a+2,43,3,2);R('#2e2a33',a+13,43,3,2)});
+  [[50,45,'#e86f5a'],[56,46,'#fff3a0'],[60,44,'#ffffff']].forEach(f=>R(f[2],f[0],f[1],1,1))},
+ rovaniemi(){lbg('#0e1430','#2a3a6a','#f4f7ff',38);for(let i=0;i<14;i++)R('#fff',hh(i,9)*64,hh(i,3)*26,1,1);
+  for(let X=0;X<64;X++){const y=8+Math.sin(X*.15)*3;x.globalAlpha=.35;R('#6effb4',X,y,1,9);x.globalAlpha=1}
+  [[6,38],[58,38]].forEach(([a,b])=>{for(let i=0;i<4;i++)R('#2a4a3a',a-i,b-10+i*2,1+i*2,2);R('#fff',a-1,b-10,3,1)});
+  const b='#8a5a3a',a='#e8d0a0';R(b,20,24,18,8);R('#c8946a',20,30,18,2);R(b,36,18,4,8);R(b,38,15,9,5);R('#e8462a',46,16,2,2);R('#2e2a33',42,16,1,1);
+  R(a,39,9,1,6);R(a,37,10,2,1);R(a,40,11,2,1);R(a,43,8,1,7);R(a,44,9,2,1);R(a,41,10,2,1);[22,26,32,36].forEach(X=>R(b,X,32,2,6));R('#fffaf0',18,24,2,2)}};
+
+/* ---------- 진행 ---------- */
+const panelEl=$('panel'),fadeEl=$('fade');
+let scene='station',cur=null,dep=null,u={},qi=0,ranked=[],ri=0,typing=null,tab='card',isNew=false;
+let stamps=[];try{stamps=JSON.parse(localStorage.getItem('trip-stamps')||'[]')}catch(e){}
+const saveSt=()=>{try{localStorage.setItem('trip-stamps',JSON.stringify(stamps))}catch(e){}};
+const updPass=()=>{$('passBtn').textContent='여권 '+stamps.length+'/'+D.length};
+function dots(n){const el=$('dots');el.style.opacity=n<0?0:1;el.innerHTML=Q.map((_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}
+function btns(box,list){box.className=list.length===3||list.length===1?'opts one':'opts';list.forEach(([l,fn])=>{const b=document.createElement('button');b.type='button';b.className='opt';b.textContent=l;b.onclick=fn;box.appendChild(b)})}
+function say(who,text,after){
+  clearInterval(typing);typing=null;
+  panelEl.innerHTML=`<div class="who">${who}</div><div class="msg" id="msg"></div><div class="opts" id="opts"></div>`;
+  const m=$('msg');let i=0;
+  const done=()=>{clearInterval(typing);typing=null;m.textContent=text;if(after)after($('opts'))};
+  if(reduce){done();return}
+  typing=setInterval(()=>{i++;m.textContent=text.slice(0,i);if(i>=text.length)done()},30);
+  m.onclick=()=>{if(typing)done()};
+}
+function fade(mid){fadeEl.style.opacity=1;setTimeout(()=>{mid();fadeEl.style.opacity=0},reduce?0:650)}
+function home(){scene='station';hub='info';dep=null;puffs=[];u={};qi=0;dots(-1);seedParts('fly','#fff3a0',10,40,90);setMood('station');setAmb(null);
+  say('안내소 고양이','어서 오세요, 여행 안내소예요!\n몇 가지만 물어보고 마음에 꼭 맞는 여행지와 탈것을 찾아 드릴게요.',b=>btns(b,[['여행 상담 받기',()=>{audioInit();sfx('ticket');ask()}],['모두의 여행 앨범',()=>openAlbum()]]))}
+function ask(){dots(qi);const q=Q[qi];
+  say('안내소 고양이',q.q,b=>btns(b,q.o.map(([l,v,s,vh])=>[l,()=>{sfx(s);if(vh)u.veh=vh;for(const k in v)u[k]=(u[k]||0)+v[k];qi++;setTimeout(()=>qi<Q.length?ask():ticket(),reduce?0:350)}])))}
+const ISLE=['jeju','ulleung'],SEA=['jeju','ulleung','kyoto','fukuoka'];
+function autoVeh(d){return d.id==='ulleung'?'ship':d.far||d.id==='jeju'?'plane':'train'}
+function rank(){const v=u.veh,pool=D.filter(d=>v==='train'||v==='bus'?!d.far&&!ISLE.includes(d.id):v==='plane'?d.far||d.id==='jeju':v==='ship'?SEA.includes(d.id):true);
+  ranked=pool.map(d=>{let s=0;for(const k in d.tg)s+=d.tg[k]*(u[k]||0);return[d,s+commScore(d)+Math.random()*.8]}).sort((a,b)=>b[1]-a[1]).map(a=>a[0]);ri=0}
+const HUBTXT={
+ train:['역장 고양이','좋아요, 딱 맞는 기차표가 나왔어요!\n어디로 가는지는… 도착하면 알려 드릴게요.','기차 타기','칙칙폭폭… 기차가 들어오고 있어요.\n안전선 뒤로 물러나 주세요.','whistle'],
+ bus:['매표소 고양이','여기는 고속버스 터미널이에요. 창가 자리 승차권 준비됐어요!\n창밖 풍경 보면서 느긋하게 가요.','버스 타기','부릉부릉… 버스가 정류장에 들어오고 있어요.\n짐은 아래 칸에 실어 드릴게요.','bus'],
+ ship:['갑판원 고양이','여기는 여객선 터미널이에요. 승선권 나왔어요!\n바닷바람 맞으면서 천천히 건너가요.','배 타기','부우웅— 여객선이 부두에 들어오고 있어요.\n갑판 위에서 갈매기에게 인사해 보세요.','horn'],
+ plane:['승무원 고양이','여기는 공항이에요. 탑승권 나왔습니다!\n어디로 가는지는… 착륙하면 알려 드릴게요.','비행기 타기','탑승을 시작합니다. 좌석 벨트를 매 주세요.\n곧 구름 위로 이륙할게요.','cabin']};
+function ticket(){dots(Q.length);rank();const d0=ranked[0],h=u.veh==='any'?(d0.far||d0.id==='jeju'?'plane':'train'):u.veh;
+  const show=()=>{const T=HUBTXT[h];say(T[0],T[1],b=>btns(b,[[T[2],()=>{sfx('tap');board()}]]))};
+  if(h===hub)show();else fade(()=>{hub=h;puffs=[];show()})}
+function board(){dots(-1);const T=HUBTXT[hub];panelEl.innerHTML=`<div class="who">안내 방송</div><div class="msg">${T[3]}</div>`;sfx(T[4]);dep={t0:performance.now(),cb:()=>go(ranked[ri])}}
+function go(d){fade(()=>{scene='dest';cur=d;seedParts(...kindOf(d));
+  setMood(d.sc==='city'||d.p.night?'night':d.sc==='sea'?'sea':'day');setAmb(d.sc==='sea'||(d.sc==='city'&&d.p.water)?'waves':['forest','snow','mountain'].includes(d.sc)?'wind':null);
+  isNew=!stamps.includes(d.id);if(isNew){stamps.push(d.id);saveSt();updPass()}tab='card';postcard();sfx('arrive')})}
+let dotOn=false,CREDITS={};try{fetch('photos/credits.json').then(r=>r.ok?r.json():{}).then(j=>{CREDITS=j||{}}).catch(()=>{})}catch(e){}
+function applyDot(){const img=$('ph'),c=$('pdot');if(!img||img.hidden)return;if(!dotOn){c.hidden=true;img.style.visibility='visible';return}
+  const g=c.getContext('2d'),iw=img.naturalWidth,ih=img.naturalHeight,r=Math.max(120/iw,90/ih),w=iw*r,h=ih*r;g.imageSmoothingEnabled=true;g.drawImage(img,(120-w)/2,(90-h)/2,w,h);
+  const D2=g.getImageData(0,0,120,90),a=D2.data;for(let i=0;i<a.length;i+=4){a[i]=Math.round(a[i]/32)*32;a[i+1]=Math.round(a[i+1]/32)*32;a[i+2]=Math.round(a[i+2]/32)*32}g.putImageData(D2,0,0);c.hidden=false;img.style.visibility='hidden'}
+const TABS=[['card','엽서'],['course','추천 코스'],['map','지도'],['meme','명물 짤'],['ugc','여행자 사진']];
+function postcard(){const d=cur;
+  panelEl.innerHTML=`<div class="who">도착! ${d.n}</div><div class="tabs" role="tablist">${TABS.map(([k,l])=>`<button type="button" role="tab" class="tab${k===tab?' on':''}" data-k="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}</div><div id="tb"></div><div class="opts" id="opts"></div>`;
+  panelEl.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{if(tab===b.dataset.k)return;tab=b.dataset.k;sfx('page');postcard()});
+  const tb=$('tb');panelEl.scrollTop=0;
+  if(tab==='card'){const why=Object.keys(d.tg).map(k=>[k,d.tg[k]*(u[k]||0)]).filter(a=>a[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,2).map(a=>TW[a[0]]);
+    tb.innerHTML=`<div class="card"><div class="stamp" style="--c:${d.st}">${d.n.split(' ')[0]}</div><div class="place">${d.addr} · ${d.far?'해외':'국내'}</div><h2>${d.n}</h2><p class="line">${d.line}</p>${why.length?`<p class="why">당신이 고른 ‘${why.join(' · ')}’에 잘 어울리는 곳이에요.</p>`:''}<p class="tip"><b>여행 팁</b>${d.tip}</p>${isNew?'<p class="new">여권에 새 도장을 찍었어요!</p>':''}${(n=>n?`<p class="new">여행자 ${n}명이 이곳 사진을 추천했어요. ‘여행자 사진’ 탭에서 볼 수 있어요.</p>`:'')(visPosts().filter(p=>p.dest===d.id).length)}</div>`}
+  if(tab==='course'){tb.innerHTML=`<div class="mapbox"><canvas id="mc" width="96" height="64"></canvas><div id="ov"></div></div><p class="cap">하루 코스 약도 · 번호 순서대로 걸어 보세요</p><ol class="course">${d.c.map((s,i)=>`<li><span class="n">${i+1}</span><div><b>${s[0]}</b><span class="when">${s[4]}</span><small>${s[1]}</small></div></li>`).join('')}</ol>`;
+    $('ov').innerHTML=drawCourse($('mc'),d)}
+  if(tab==='map'){const k=d.far?'wd':'kr',M=MAPS[k];tb.innerHTML=`<div class="mapbox ${k}"><canvas id="mc" width="${M.w}" height="${M.h}"></canvas><div id="ov"></div></div><p class="cap">${d.far?`서울에서 ${d.n}까지, 점선을 따라 비행기로 슝`:`깃발이 ${d.n}이에요. 작은 점은 지금까지 다녀온 국내 여행지예요.`}<br>${d.addr}</p>`;
+    $('ov').innerHTML=drawMap(k,$('mc'),d)}
+  if(tab==='meme'){tb.innerHTML=`<div class="pframe"><div class="in"><div class="pimg"><img id="ph" alt="${d.n} 대표 사진" decoding="async" hidden><canvas id="pdot" width="120" height="90" hidden></canvas><canvas id="mc" width="64" height="48"></canvas><span class="ptag" id="ptag">도트 일러스트 · 실제 사진 준비 중</span></div><p class="pcap">${d.cap}</p><div class="prow"><span class="credit" id="cr"></span><button type="button" class="mini" id="dotBtn" hidden>${dotOn?'원본 사진':'도트 필터'}</button></div></div></div>`;
+    paint($('mc'),LM[d.id]);const img=$('ph');
+    const cp=topComm(d.id);
+    img.onload=()=>{img.hidden=false;$('mc').hidden=true;$('ptag').hidden=true;$('dotBtn').hidden=false;const c=img.dataset.c?null:CREDITS[d.id];$('cr').textContent=img.dataset.c?'여행자 추천 사진':c?'사진: '+c:'';applyDot()};
+    img.onerror=()=>{if(cp&&!img.dataset.c){img.dataset.c='1';img.src=cp.url}else img.remove()};img.src='photos/'+d.id+'.jpg';
+    $('dotBtn').onclick=()=>{sfx('tap');dotOn=!dotOn;$('dotBtn').textContent=dotOn?'원본 사진':'도트 필터';applyDot()}}
+  if(tab==='ugc')renderUGC(tb,d);
+  btns($('opts'),[['다른 곳도 볼래요',()=>{sfx('page');ri=(ri+1)%ranked.length;go(ranked[ri])}],['처음으로',()=>{sfx('chime');fade(home)}]]);
+}
+$('passBtn').onclick=()=>{audioInit();sfx('page');
+  $('grid').innerHTML=D.map((d,i)=>stamps.includes(d.id)?`<div class="st on" style="--c:${d.st};--r:${(i%5-2)*4}deg"><b>${d.n.split(' ')[0]}</b><small>${d.r}</small></div>`:`<div class="st"><b>?</b><small>${d.far?'해외':'국내'}</small></div>`).join('');
+  $('cnt').textContent=stamps.length?`${D.length}곳 중 ${stamps.length}곳에 다녀왔어요.`:'아직 찍힌 도장이 없어요. 첫 기차를 타 볼까요?';
+  $('over').hidden=false;$('closeBtn').focus()};
+$('closeBtn').onclick=()=>{sfx('tap');$('over').hidden=true};
+
+/* ---------- 여행자 사진 공유 (Supabase) ---------- */
+const SB_URL='https://fwxmiqrtzcjlnyuvlbxw.supabase.co',SB_KEY='sb_publishable_BCFYm7FXxsuuWh4cFyeFuQ_5Bc0e85L';
+const CONTACT_EMAIL=(window.APP_CONFIG||{}).contactEmail||'';
+const TAGK=['sea','green','snow','city','old','food','rest','warm'];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let sb=null,ME=null,PROFILE=null,dbState='loading',POSTS=[],NICK={},MYH=new Set(),MYR=new Set(),BLOCKED=new Set(),lastLoad=0;
+const visPosts=()=>POSTS.filter(p=>!BLOCKED.has(p.uid));
+const hearts=k=>(POSTS.find(p=>p.key===k)||{}).hearts||0;
+const canUp=()=>!!sb&&dbState==='ok';
+const photoUrl=path=>sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+function cleanPost(r){return{id:r.id,key:r.id,uid:r.user_id,dest:D.some(d=>d.id===r.dest)?r.dest:'etc',place:String(r.place||'').slice(0,30),text:String(r.body||'').slice(0,60),tags:(r.tags||[]).filter(t=>TAGK.includes(t)),path:r.photo_path,hearts:r.heart_count||0,ts:Date.parse(r.created_at)||0}}
+async function loadPosts(force){if(!sb)return;if(!force&&Date.now()-lastLoad<30000)return;lastLoad=Date.now();
+  const tm=setTimeout(()=>{if(dbState==='loading'){dbState='slow';refreshUGC()}},10000);
+  const {data,error}=await sb.from('posts').select('id,user_id,dest,place,body,tags,photo_path,heart_count,created_at').order('created_at',{ascending:false}).limit(300);
+  clearTimeout(tm);if(error){dbState=POSTS.length?'ok':'off';refreshUGC();return}
+  POSTS=data.map(cleanPost);dbState='ok';
+  const ids=[...new Set(POSTS.map(p=>p.uid))].filter(i=>!(i in NICK));
+  if(ids.length){const r=await sb.from('profiles').select('user_id,nickname').in('user_id',ids);(r.data||[]).forEach(x=>{NICK[x.user_id]=x.nickname})}
+  refreshUGC()}
+async function initSB(){if(!window.supabase){dbState='off';refreshUGC();return}
+  try{sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    const {data:{session}}=await sb.auth.getSession();if(session)await afterLogin(session.user);
+    await loadPosts(true)}catch(e){dbState='off';refreshUGC()}}
+async function afterLogin(user){ME=user.id;
+  const [p,h,r,b]=await Promise.all([sb.from('profiles').select('nickname').eq('user_id',ME).maybeSingle(),sb.from('hearts').select('post_id').eq('user_id',ME),sb.from('reports').select('post_id').eq('user_id',ME),sb.from('blocks').select('blocked_id').eq('user_id',ME)]);
+  PROFILE=p.data||null;MYH=new Set((h.data||[]).map(x=>x.post_id));MYR=new Set((r.data||[]).map(x=>x.post_id));BLOCKED=new Set((b.data||[]).map(x=>x.blocked_id))}
+// 사진 올리기·좋아요·신고·차단을 처음 할 때만 익명 계정을 만들고, 닉네임과 약관 동의를 받아요
+async function ensureMember(){if(!sb)throw new Error('off');
+  if(!ME){const {data,error}=await sb.auth.signInAnonymously();if(error)throw error;await afterLogin(data.user)}
+  if(!PROFILE){const ok=await askJoin();if(!ok)return false}
+  return true}
+function askJoin(){return new Promise(res=>{const o=$('joinOver');$('jNick').value='';$('jAge').checked=$('jTerms').checked=$('jPriv').checked=false;$('jErr').textContent='';o.hidden=false;o.scrollTop=0;
+  $('jCancel').onclick=()=>{o.hidden=true;res(false)};
+  $('jOk').onclick=async()=>{const n=$('jNick').value.trim();if(n.length<1||n.length>12){$('jErr').textContent='닉네임은 1~12자로 정해 주세요.';return}
+    if(!$('jAge').checked||!$('jTerms').checked||!$('jPriv').checked){$('jErr').textContent='필수 항목에 모두 동의해 주세요.';return}
+    $('jOk').disabled=true;const {error}=await sb.from('profiles').insert({user_id:ME,nickname:n});$('jOk').disabled=false;
+    if(error){$('jErr').textContent='저장하지 못했어요. 잠시 후 다시 시도해 주세요.';return}
+    PROFILE={nickname:n};NICK[ME]=n;o.hidden=true;res(true)}})}
+async function member(){try{return await ensureMember()}catch(e){toast('지금은 연결할 수 없어요. 인터넷 연결을 확인해 주세요.');return false}}
+function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{el.hidden=true},2600)}
+function dbMsg(){return dbState==='off'?'지금은 여행자 사진을 불러올 수 없어요. 인터넷 연결을 확인해 주세요.':dbState==='loading'?'여행자 사진을 불러오는 중이에요…':dbState==='slow'?'사진을 불러오는 데 시간이 걸리고 있어요.':''}
+function commScore(d){let s=0;for(const p of visPosts())if(p.dest===d.id){const ov=p.tags.reduce((a,t)=>a+(u[t]||0),0);s+=(1+p.hearts*.5)*(.2+ov*.1)}return Math.min(3,s)}
+function topComm(id){const p=visPosts().filter(p=>p.dest===id).sort((a,b)=>b.hearts-a.hearts||b.ts-a.ts)[0];return p?{...p,url:photoUrl(p.path)}:null}
+function postHTML(p){const mine=p.uid===ME,on=MYH.has(p.id),rep=MYR.has(p.id);
+  return `<article class="post"><div class="pimg sm"><img src="${esc(photoUrl(p.path))}" alt="${esc(p.place)} 사진" loading="lazy"></div><div class="pb"><b>${esc(p.place)}</b>${p.text?`<p>${esc(p.text)}</p>`:''}${p.tags.length?`<p class="tg">${p.tags.map(t=>'#'+TW[t]).join(' ')}</p>`:''}
+  <div class="pa"><button type="button" class="heart${on?' on':''}" data-heart="${p.id}" aria-pressed="${on}">♥ ${p.hearts}</button><span class="by">${esc(NICK[p.uid]||'여행자')}${mine?' (나)':''}</span>
+  ${mine?`<button type="button" class="lnk" data-del="${p.id}">삭제</button>`:`<button type="button" class="lnk" data-more="${p.id}" aria-label="신고 또는 차단">${rep?'신고함 · ':''}더보기</button>`}</div></div></article>`}
+function bindFeed(root){
+  root.querySelectorAll('[data-heart]').forEach(b=>b.onclick=async()=>{if(!(await member()))return;sfx('tap');const id=b.dataset.heart,p=POSTS.find(x=>x.id===id);if(!p)return;
+    const on=MYH.has(id);on?MYH.delete(id):MYH.add(id);p.hearts+=on?-1:1;refreshUGC();
+    const r=on?await sb.from('hearts').delete().eq('post_id',id).eq('user_id',ME):await sb.from('hearts').insert({post_id:id,user_id:ME});
+    if(r.error){on?MYH.add(id):MYH.delete(id);p.hearts+=on?1:-1;refreshUGC()}});
+  root.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{sfx('tap');openMore(b.dataset.more)});
+  root.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='정말 삭제할까요?';return}
+    const p=POSTS.find(x=>x.id===b.dataset.del);if(!p)return;const r=await sb.from('posts').delete().eq('id',p.id);if(r.error){toast('삭제하지 못했어요.');return}
+    await sb.storage.from('photos').remove([p.path]);POSTS=POSTS.filter(x=>x.id!==p.id);toast('사진을 삭제했어요.');refreshUGC()})}
+function openMore(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const o=$('moreOver');$('mWho').textContent=(NICK[p.uid]||'여행자')+'님의 사진';
+  $('mReasons').innerHTML=['부적절하거나 불쾌한 사진','스팸·광고','저작권 침해(남의 사진)','개인정보·얼굴 노출','기타'].map((r,i)=>`<label class="rad"><input type="radio" name="rr" value="${esc(r)}"${i?'':' checked'}><span>${r}</span></label>`).join('');
+  $('mReport').disabled=MYR.has(id);$('mReport').textContent=MYR.has(id)?'이미 신고했어요':'신고하기';o.hidden=false;
+  $('mReport').onclick=async()=>{if(!(await member()))return;const reason=(o.querySelector('input[name=rr]:checked')||{}).value||'';
+    const r=await sb.from('reports').insert({post_id:id,user_id:ME,reason});if(r.error&&r.error.code!=='23505'){toast('신고하지 못했어요. 잠시 후 다시 시도해 주세요.');return}
+    MYR.add(id);o.hidden=true;toast('신고를 받았어요. 검토 후 조치할게요.');refreshUGC()};
+  $('mBlock').onclick=async()=>{if(!(await member()))return;if(p.uid===ME)return;
+    const r=await sb.from('blocks').insert({user_id:ME,blocked_id:p.uid});if(r.error&&r.error.code!=='23505'){toast('차단하지 못했어요.');return}
+    BLOCKED.add(p.uid);o.hidden=true;toast('차단했어요. 이 사용자의 사진은 더 이상 보이지 않아요.');refreshUGC()};
+  $('mClose').onclick=()=>{o.hidden=true}}
+function renderUGC(tb,d){const ps=visPosts().filter(p=>p.dest===d.id).sort((a,b)=>b.hearts-a.hearts||b.ts-a.ts);
+  const sim=visPosts().filter(p=>p.dest==='etc').map(p=>[p,p.tags.reduce((a,t)=>a+(u[t]||0),0)]).filter(a=>a[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3).map(a=>a[0]);
+  const msg=dbMsg()||(ps.length?`여행자 ${ps.length}명이 ${d.n} 사진을 추천했어요.`:`아직 ${d.n} 사진이 없어요. 첫 번째로 추천해 주세요!`);
+  tb.innerHTML=`<div class="ugchead"><p>${esc(msg)}</p>${canUp()?'<button type="button" class="mini" id="ugUp">이곳 사진 올리기</button>':''}</div><div class="feed">${ps.map(postHTML).join('')}</div>${sim.length?`<h4 class="simh">비슷한 느낌의 숨은 여행지</h4><div class="feed">${sim.map(postHTML).join('')}</div>`:''}`;
+  bindFeed(tb);const b=$('ugUp');if(b)b.onclick=()=>{sfx('tap');openUp(d.id)};loadPosts()}
+function renderAlbum(){const f=$('alFilter').value,sort=$('alSort').value;let ps=visPosts().filter(p=>!f||p.dest===f);
+  ps=sort==='new'?ps.sort((a,b)=>b.ts-a.ts):ps.sort((a,b)=>b.hearts-a.hearts||b.ts-a.ts);
+  $('alSub').textContent=dbMsg()||(visPosts().length?`여행자들이 올린 사진 ${visPosts().length}장`:'아직 올라온 사진이 없어요. 첫 사진의 주인공이 되어 주세요!');
+  $('alUp').hidden=!canUp();$('feed').innerHTML=ps.map(postHTML).join('')||(dbState==='ok'&&visPosts().length?'<p class="note">이 조건에 맞는 사진이 없어요.</p>':'');bindFeed($('feed'))}
+function refreshUGC(){if(!$('alOver').hidden)renderAlbum();if(scene==='dest'&&tab==='ugc'&&$('tb')){const st=panelEl.scrollTop;renderUGC($('tb'),cur);panelEl.scrollTop=st}}
+const destOpts=()=>D.map(d=>`<option value="${d.id}">${d.n} (${d.r})</option>`).join('');
+$('alFilter').innerHTML='<option value="">모든 여행지</option>'+destOpts()+'<option value="etc">숨은 여행지 (직접 입력)</option>';
+$('upDest').innerHTML='<option value="">여행지를 골라 주세요</option>'+destOpts()+'<option value="etc">목록에 없어요 (직접 입력)</option>';
+$('upTags').innerHTML=TAGK.map(t=>`<button type="button" class="chip" data-t="${t}" aria-pressed="false">${TW[t]}</button>`).join('');
+$('upTags').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const on=c.getAttribute('aria-pressed')!=='true';c.setAttribute('aria-pressed',on);c.classList.toggle('on',on);sfx('tap')});
+function openAlbum(){audioInit();sfx('page');$('alOver').hidden=false;$('alOver').scrollTop=0;renderAlbum();loadPosts()}
+$('alFilter').onchange=renderAlbum;$('alSort').onchange=renderAlbum;
+$('alClose').onclick=()=>{sfx('tap');$('alOver').hidden=true};$('alUp').onclick=()=>{sfx('tap');openUp('')};
+let upFile=null;
+async function openUp(dest){if(!(await member()))return;upFile=null;$('upFile').value='';$('upPrev').hidden=true;$('dropTxt').hidden=false;$('upDest').value=dest||'';$('placeWrap').hidden=dest!=='etc';$('upPlace').value='';$('upText').value='';$('upOk').checked=false;$('upErr').textContent='';
+  $('upTags').querySelectorAll('.chip').forEach(c=>{c.classList.remove('on');c.setAttribute('aria-pressed','false')});$('upSend').disabled=false;$('upSend').textContent='올리기';$('upOver').hidden=false;$('upOver').scrollTop=0}
+$('upDest').onchange=()=>{$('placeWrap').hidden=$('upDest').value!=='etc'};
+$('upFile').onchange=()=>{const f=$('upFile').files[0];if(!f)return;if(!/^image\//.test(f.type)){$('upErr').textContent='사진 파일만 올릴 수 있어요.';return}upFile=f;const p=$('upPrev');p.src=URL.createObjectURL(f);p.hidden=false;$('dropTxt').hidden=true;$('upErr').textContent=''};
+$('upCancel').onclick=()=>{sfx('tap');$('upOver').hidden=true};
+async function shrink(f){let src,w,h;try{src=await createImageBitmap(f);w=src.width;h=src.height}catch(e){const im=new Image();im.src=URL.createObjectURL(f);await im.decode();src=im;w=im.naturalWidth;h=im.naturalHeight}
+  const r=Math.min(1,1280/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*r);c.height=Math.round(h*r);c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',.82))}
+$('upSend').onclick=async()=>{const dest=$('upDest').value,place=$('upPlace').value.trim(),text=$('upText').value.trim(),tags=[...$('upTags').querySelectorAll('.chip.on')].map(c=>c.dataset.t),err=$('upErr');
+  if(!upFile){err.textContent='사진을 먼저 골라 주세요.';return}if(!dest){err.textContent='어느 여행지인지 골라 주세요.';return}if(dest==='etc'&&!place){err.textContent='장소 이름을 적어 주세요.';return}if(!$('upOk').checked){err.textContent='직접 찍은 사진인지 확인하고 동의에 체크해 주세요.';return}
+  const b=$('upSend');b.disabled=true;b.textContent='올리는 중…';err.textContent='';
+  try{const blob=await shrink(upFile),path=ME+'/'+Date.now()+'.jpg';
+    const up=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});if(up.error)throw up.error;
+    const ins=await sb.from('posts').insert({dest,place:dest==='etc'?place:D.find(d=>d.id===dest).n,body:text,tags,photo_path:path}).select('id,user_id,dest,place,body,tags,photo_path,heart_count,created_at').single();
+    if(ins.error){await sb.storage.from('photos').remove([path]);throw ins.error}
+    POSTS.unshift(cleanPost(ins.data));sfx('arrive');$('upOver').hidden=true;toast('사진을 올렸어요! 고마워요.');refreshUGC()}
+  catch(e){b.disabled=false;b.textContent='올리기';const m=String(e&&e.message||'');
+    err.textContent=m.includes('daily_limit')?'사진은 하루에 10장까지 올릴 수 있어요.':m.includes('bad_words')?'사용할 수 없는 단어가 들어 있어요. 문구를 바꿔 주세요.':m.toLowerCase().includes('size')?'사진 용량이 너무 커요.':'사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요.'}};
+
+/* ---------- 메뉴: 소리·약관·차단 관리·문의·계정 삭제 ---------- */
+$('menuBtn').onclick=()=>{audioInit();sfx('page');$('sndToggle').textContent=AU.on?'소리 끄기':'소리 켜기';$('mNickLine').textContent=PROFILE?`닉네임: ${PROFILE.nickname}`:'아직 사진을 올린 적이 없어요.';$('menuOver').hidden=false};
+$('menuClose').onclick=()=>{sfx('tap');$('menuOver').hidden=true};
+$('sndToggle').onclick=()=>{audioInit();AU.on=!AU.on;$('sndToggle').textContent=AU.on?'소리 끄기':'소리 켜기';if(AU.ac)AU.master.gain.setTargetAtTime(AU.on?.9:0,now(),.25);if(AU.on)sfx('tap')};
+document.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>{sfx('page');$('docFrame').src=b.dataset.doc;$('docTitle').textContent=b.textContent;$('docOver').hidden=false});
+$('docClose').onclick=()=>{$('docOver').hidden=true;$('docFrame').src='about:blank'};
+$('contactBtn').onclick=()=>{if(CONTACT_EMAIL)location.href='mailto:'+CONTACT_EMAIL+'?subject='+encodeURIComponent('[여행 정거장] 문의')};$('contactAddr').textContent=CONTACT_EMAIL||'준비 중';
+$('blockedBtn').onclick=async()=>{sfx('page');const o=$('blkOver'),list=$('blkList');o.hidden=false;
+  if(!BLOCKED.size){list.innerHTML='<p class="note">차단한 사용자가 없어요.</p>';return}
+  const ids=[...BLOCKED],r=await sb.from('profiles').select('user_id,nickname').in('user_id',ids);(r.data||[]).forEach(x=>{NICK[x.user_id]=x.nickname});
+  list.innerHTML=ids.map(i=>`<div class="blkrow"><span>${esc(NICK[i]||'여행자')}</span><button type="button" class="mini" data-unblock="${esc(i)}">차단 해제</button></div>`).join('');
+  list.querySelectorAll('[data-unblock]').forEach(b=>b.onclick=async()=>{const r=await sb.from('blocks').delete().eq('user_id',ME).eq('blocked_id',b.dataset.unblock);if(!r.error){BLOCKED.delete(b.dataset.unblock);b.closest('.blkrow').remove();loadPosts(true)}})};
+$('blkClose').onclick=()=>{$('blkOver').hidden=true};
+$('delAcct').onclick=async()=>{const b=$('delAcct');if(!ME){toast('삭제할 계정 정보가 없어요. 이 기기의 여권 기록만 지울게요.');try{localStorage.removeItem('trip-stamps')}catch(e){}stamps=[];updPass();return}
+  if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='정말 삭제할까요? 올린 사진도 모두 지워져요';return}
+  b.disabled=true;try{const mine=POSTS.filter(p=>p.uid===ME).map(p=>p.path);const own=await sb.storage.from('photos').list(ME,{limit:1000});const paths=[...new Set([...mine,...((own.data||[]).map(f=>ME+'/'+f.name))])];if(paths.length)await sb.storage.from('photos').remove(paths);
+    const r=await sb.rpc('delete_my_account');if(r.error)throw r.error;await sb.auth.signOut();
+    ME=null;PROFILE=null;MYH=new Set();MYR=new Set();BLOCKED=new Set();try{localStorage.removeItem('trip-stamps')}catch(e){}stamps=[];updPass();toast('계정과 데이터를 모두 삭제했어요.');$('menuOver').hidden=true;loadPosts(true)}
+  catch(e){toast('삭제하지 못했어요. 잠시 후 다시 시도하거나 문의해 주세요.')}finally{b.disabled=false;b.dataset.sure='';b.textContent='내 계정과 데이터 삭제'}};
+initSB();
+
+let last=performance.now();
+function loop(nw){const t=nw/1000,dt=Math.min(.05,(nw-last)/1000);last=nw;
+  try{x.clearRect(0,0,W,H);if(scene==='station')HUBS[hub](t,nw,dt);else SC[cur.sc](cur.p,t);drawParts(t,dt)}catch(e){console.error(e)}
+  requestAnimationFrame(loop)}
+updPass();home();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
