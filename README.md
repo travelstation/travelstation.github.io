@@ -6,6 +6,6 @@
 - 기차·버스·비행기·여객선 탑승 연출, 도트 풍경, 하루 추천 코스와 지도
 - 여행자들이 직접 찍은 사진으로 함께 만드는 추천
 
-플레이: https://jh-yoo-dev.github.io/travel-station/
+플레이: https://travelstation.github.io/
 
 - [개인정보 처리방침](privacy.html) · [이용약관](terms.html)
